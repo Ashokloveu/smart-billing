@@ -6,6 +6,8 @@ import { Party } from '../../models/Party.js';
 import { StockMovement } from '../../models/StockMovement.js';
 import { StockBalance } from '../../models/StockBalance.js';
 import { Organization } from '../../models/Organization.js';
+import { Account } from '../../models/Account.js';
+import { JournalEntry } from '../../models/JournalEntry.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 
 export interface TransactionQuery {
@@ -287,6 +289,169 @@ export class TransactionService {
 
         party.currentBalance = mongoose.Types.Decimal128.fromString(newBal.toFixed(2));
         await party.save({ session });
+      }
+    }
+
+    // Auto-generate Double-Entry Accounting Journal Entry (Phase 6 Integration)
+    await this.generateTransactionJournal(orgId, txn, userId, session);
+  }
+
+  // Double-Entry Journal Entry Generator for Transactions
+  private async generateTransactionJournal(
+    orgId: string,
+    txn: any,
+    userId: string,
+    session: mongoose.ClientSession
+  ) {
+    const orgObjectId = new mongoose.Types.ObjectId(orgId);
+    const firmObjectId = new mongoose.Types.ObjectId(txn.firmId);
+    const fyObjectId = new mongoose.Types.ObjectId(txn.financialYearId);
+
+    // Fetch Standard Accounts
+    const [cashAcc, arAcc, apAcc, stockAcc, salesAcc, purchAcc, outVatAcc, inVatAcc] = await Promise.all([
+      Account.findOne({ organizationId: orgObjectId, code: '1110' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '1130' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '2110' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '1140' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '4100' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '5100' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '2120' }).session(session),
+      Account.findOne({ organizationId: orgObjectId, code: '1150' }).session(session),
+    ]);
+
+    if (!salesAcc || !purchAcc || !cashAcc) return; // COA not yet seeded
+
+    const grandTotal = Number(txn.grandTotal.toString());
+    const taxable = Number(txn.totalTaxableAmount.toString());
+    const tax = Number(txn.totalTax.toString());
+    const lines: any[] = [];
+
+    if (txn.type === 'sale_invoice' || txn.type === 'pos_invoice') {
+      const debitAcc = txn.paymentMode === 'cash' ? cashAcc : arAcc || cashAcc;
+      lines.push({
+        accountId: debitAcc._id,
+        accountCode: debitAcc.code,
+        accountName: debitAcc.name,
+        partyId: txn.partyId || null,
+        debit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+        credit: mongoose.Types.Decimal128.fromString('0.00'),
+        baseDebit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+        baseCredit: mongoose.Types.Decimal128.fromString('0.00'),
+        narration: `Receivable/Cash for ${txn.documentNumber}`,
+      });
+
+      lines.push({
+        accountId: salesAcc._id,
+        accountCode: salesAcc.code,
+        accountName: salesAcc.name,
+        partyId: null,
+        debit: mongoose.Types.Decimal128.fromString('0.00'),
+        credit: mongoose.Types.Decimal128.fromString(taxable.toFixed(2)),
+        baseDebit: mongoose.Types.Decimal128.fromString('0.00'),
+        baseCredit: mongoose.Types.Decimal128.fromString(taxable.toFixed(2)),
+        narration: `Sales Revenue for ${txn.documentNumber}`,
+      });
+
+      if (tax > 0 && outVatAcc) {
+        lines.push({
+          accountId: outVatAcc._id,
+          accountCode: outVatAcc.code,
+          accountName: outVatAcc.name,
+          partyId: null,
+          debit: mongoose.Types.Decimal128.fromString('0.00'),
+          credit: mongoose.Types.Decimal128.fromString(tax.toFixed(2)),
+          baseDebit: mongoose.Types.Decimal128.fromString('0.00'),
+          baseCredit: mongoose.Types.Decimal128.fromString(tax.toFixed(2)),
+          narration: `13% Output VAT on ${txn.documentNumber}`,
+        });
+      }
+    } else if (txn.type === 'purchase_bill') {
+      const creditAcc = txn.paymentMode === 'cash' ? cashAcc : apAcc || cashAcc;
+      const debitAcc = stockAcc || purchAcc;
+
+      lines.push({
+        accountId: debitAcc._id,
+        accountCode: debitAcc.code,
+        accountName: debitAcc.name,
+        partyId: null,
+        debit: mongoose.Types.Decimal128.fromString(taxable.toFixed(2)),
+        credit: mongoose.Types.Decimal128.fromString('0.00'),
+        baseDebit: mongoose.Types.Decimal128.fromString(taxable.toFixed(2)),
+        baseCredit: mongoose.Types.Decimal128.fromString('0.00'),
+        narration: `Stock Inbound / Purchases for ${txn.documentNumber}`,
+      });
+
+      if (tax > 0 && inVatAcc) {
+        lines.push({
+          accountId: inVatAcc._id,
+          accountCode: inVatAcc.code,
+          accountName: inVatAcc.name,
+          partyId: null,
+          debit: mongoose.Types.Decimal128.fromString(tax.toFixed(2)),
+          credit: mongoose.Types.Decimal128.fromString('0.00'),
+          baseDebit: mongoose.Types.Decimal128.fromString(tax.toFixed(2)),
+          baseCredit: mongoose.Types.Decimal128.fromString('0.00'),
+          narration: `Input VAT claimable on ${txn.documentNumber}`,
+        });
+      }
+
+      lines.push({
+        accountId: creditAcc._id,
+        accountCode: creditAcc.code,
+        accountName: creditAcc.name,
+        partyId: txn.partyId || null,
+        debit: mongoose.Types.Decimal128.fromString('0.00'),
+        credit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+        baseDebit: mongoose.Types.Decimal128.fromString('0.00'),
+        baseCredit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+        narration: `Payable/Cash for ${txn.documentNumber}`,
+      });
+    }
+
+    if (lines.length >= 2) {
+      // Find or assign sequential JV number
+      const seq = await DocumentSequence.findOneAndUpdate(
+        {
+          organizationId: orgObjectId,
+          firmId: firmObjectId,
+          financialYearId: fyObjectId,
+          type: 'journal_entry',
+        },
+        { $setOnInsert: { prefix: 'JV' }, $inc: { nextNumber: 1 } },
+        { upsert: true, new: true, session }
+      );
+      const entryNumber = `${seq.prefix}-${String(seq.nextNumber).padStart(4, '0')}`;
+
+      await JournalEntry.create(
+        [
+          {
+            organizationId: orgObjectId,
+            firmId: firmObjectId,
+            financialYearId: fyObjectId,
+            entryNumber,
+            date: txn.date,
+            bsDate: txn.bsDate,
+            narration: `Auto Journal for ${txn.type.toUpperCase()} #${txn.documentNumber}`,
+            status: 'posted',
+            sourceModule: txn.type.startsWith('sale') ? 'sales' : txn.type === 'pos_invoice' ? 'pos' : 'purchase',
+            sourceDocumentId: txn._id,
+            sourceDocumentNumber: txn.documentNumber,
+            lines,
+            totalDebit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+            totalCredit: mongoose.Types.Decimal128.fromString(grandTotal.toFixed(2)),
+            createdBy: new mongoose.Types.ObjectId(userId),
+          },
+        ],
+        { session }
+      );
+
+      // Apply ledger impact
+      for (const line of lines) {
+        const d = parseFloat(line.debit.toString());
+        const c = parseFloat(line.credit.toString());
+        await Account.findByIdAndUpdate(line.accountId, {
+          $inc: { currentBalance: mongoose.Types.Decimal128.fromString((d - c).toFixed(2)) },
+        }).session(session);
       }
     }
   }

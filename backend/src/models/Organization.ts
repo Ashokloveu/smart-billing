@@ -22,6 +22,7 @@ export interface IOrganization extends Document {
     decimalPrecision: number;
     roundOffMethod: 'nearest' | 'up' | 'down' | 'none';
     allowNegativeStock: boolean;
+    requireJournalApproval?: boolean;
     displayCalendar: 'bikram_sambat' | 'gregorian' | 'both';
     primaryLanguage: 'en' | 'ne' | 'bilingual';
   };
@@ -59,6 +60,7 @@ const OrganizationSchema = new Schema<IOrganization>(
       decimalPrecision: { type: Number, default: 2 },
       roundOffMethod: { type: String, enum: ['nearest', 'up', 'down', 'none'], default: 'nearest' },
       allowNegativeStock: { type: Boolean, default: false },
+      requireJournalApproval: { type: Boolean, default: false },
       displayCalendar: { type: String, enum: ['bikram_sambat', 'gregorian', 'both'], default: 'both' },
       primaryLanguage: { type: String, enum: ['en', 'ne', 'bilingual'], default: 'bilingual' },
     },

@@ -9,6 +9,7 @@ import { InventoryDashboard } from './features/inventory/InventoryDashboard';
 import { TransactionManager } from './features/transactions/TransactionManager';
 import { PosTerminal } from './features/transactions/PosTerminal';
 import { ReportsDashboard } from './features/reports/pages/ReportsDashboard';
+import { AccountingDashboard } from './features/accounting/pages/AccountingDashboard';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -42,17 +43,7 @@ export const App: React.FC = () => {
               <Route path="/items" element={<ItemsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/inventory" element={<InventoryDashboard />} />
-              <Route
-                path="/accounting"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>General Journal & Double-Entry Ledger</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 6 Implementation.
-                    </p>
-                  </div>
-                }
-              />
+              <Route path="/accounting" element={<AccountingDashboard />} />
               <Route path="/reports" element={<ReportsDashboard />} />
             </Route>
           </Route>

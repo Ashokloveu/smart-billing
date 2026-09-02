@@ -10,6 +10,7 @@ import { masterRouter } from './modules/master/master.router.js';
 import { inventoryRouter } from './modules/inventory/inventory.router.js';
 import { transactionRouter } from './modules/transaction/transaction.router.js';
 import { reportsRouter } from './modules/reports/reports.routes.js';
+import { accountingRouter } from './modules/accounting/accounting.routes.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
@@ -41,6 +42,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1/organizations/:orgId', inventoryRouter);
   app.use('/api/v1/organizations/:orgId', transactionRouter);
   app.use('/api/v1/organizations/:orgId', reportsRouter);
+  app.use('/api/v1/organizations/:orgId', accountingRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

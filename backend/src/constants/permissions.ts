@@ -34,11 +34,15 @@ export const PERMISSIONS = {
   JOURNAL_VIEW: 'journal:view',
   JOURNAL_CREATE: 'journal:create',
   JOURNAL_POST: 'journal:post',
+  JOURNAL_APPROVE: 'journal:approve',
+  JOURNAL_CANCEL: 'journal:cancel',
+  ACCOUNTING_VIEW: 'accounting:view',
 
   // Reports
   REPORT_VAT_VIEW: 'report:vat:view',
   REPORT_PNL_VIEW: 'report:pnl:view',
   REPORT_BALANCE_SHEET_VIEW: 'report:balance_sheet:view',
+  REPORT_CASHFLOW_VIEW: 'report:cashflow:view',
   REPORT_STOCK_VIEW: 'report:stock:view',
 
   // Administration

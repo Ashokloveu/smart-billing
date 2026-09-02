@@ -87,6 +87,17 @@ export const Sidebar: React.FC = () => {
         >
           📈 VAT & P&L Reports
         </NavLink>
+
+        <div style={styles.sectionLabel}>ADMINISTRATION</div>
+        <NavLink
+          to="/settings"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          ⚙️ Organization & Settings
+        </NavLink>
       </nav>
 
       <div style={styles.footer}>

@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LoginPage } from './features/auth/LoginPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { PartiesPage } from './features/parties/PartiesPage';
+import { ItemsPage } from './features/items/ItemsPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -51,28 +54,9 @@ export const App: React.FC = () => {
                   </div>
                 }
               />
-              <Route
-                path="/parties"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Parties (Customers & Suppliers)</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 2 Implementation.
-                    </p>
-                  </div>
-                }
-              />
-              <Route
-                path="/items"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Items & Services Catalog</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 2 Implementation.
-                    </p>
-                  </div>
-                }
-              />
+              <Route path="/parties" element={<PartiesPage />} />
+              <Route path="/items" element={<ItemsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route
                 path="/inventory"
                 element={

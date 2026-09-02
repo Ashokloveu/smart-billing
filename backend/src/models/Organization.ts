@@ -69,7 +69,6 @@ const OrganizationSchema = new Schema<IOrganization>(
   }
 );
 
-OrganizationSchema.index({ slug: 1 }, { unique: true });
 OrganizationSchema.index({ 'taxRegistration.number': 1 }, { sparse: true });
 OrganizationSchema.index({ isActive: 1, createdAt: -1 });
 

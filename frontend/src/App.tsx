@@ -7,6 +7,8 @@ import { PartiesPage } from './features/parties/PartiesPage';
 import { ItemsPage } from './features/items/ItemsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { InventoryDashboard } from './features/inventory/InventoryDashboard';
+import { TransactionManager } from './features/transactions/TransactionManager';
+import { PosTerminal } from './features/transactions/PosTerminal';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -33,28 +35,9 @@ export const App: React.FC = () => {
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route
-                path="/sales"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Sales & Invoicing Module</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 4 Implementation.
-                    </p>
-                  </div>
-                }
-              />
-              <Route
-                path="/purchases"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Purchases & Vendor Bills</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 4 Implementation.
-                    </p>
-                  </div>
-                }
-              />
+              <Route path="/sales" element={<TransactionManager moduleType="sales" />} />
+              <Route path="/pos" element={<PosTerminal />} />
+              <Route path="/purchases" element={<TransactionManager moduleType="purchases" />} />
               <Route path="/parties" element={<PartiesPage />} />
               <Route path="/items" element={<ItemsPage />} />
               <Route path="/settings" element={<SettingsPage />} />

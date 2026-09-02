@@ -30,6 +30,15 @@ export const Sidebar: React.FC = () => {
           🛒 Sales & Invoicing
         </NavLink>
         <NavLink
+          to="/pos"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          ⚡ POS Terminal
+        </NavLink>
+        <NavLink
           to="/purchases"
           style={({ isActive }) => ({
             ...styles.link,

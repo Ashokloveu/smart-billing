@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { NotificationDropdown } from '../../features/operations/components/NotificationDropdown';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -22,6 +23,7 @@ export const Header: React.FC = () => {
       </div>
 
       <div style={styles.right}>
+        <NotificationDropdown />
         <div style={styles.userInfo}>
           <span style={styles.userName}>{user?.fullName || 'Operator'}</span>
           <span style={styles.userRole}>Administrator</span>

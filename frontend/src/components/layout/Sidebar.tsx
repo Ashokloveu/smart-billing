@@ -30,6 +30,15 @@ export const Sidebar: React.FC = () => {
           🛒 Sales & Invoicing
         </NavLink>
         <NavLink
+          to="/sales-orders"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          📑 Sales Orders & O2C
+        </NavLink>
+        <NavLink
           to="/pos"
           style={({ isActive }) => ({
             ...styles.link,
@@ -46,6 +55,15 @@ export const Sidebar: React.FC = () => {
           })}
         >
           📦 Purchases & Bills
+        </NavLink>
+        <NavLink
+          to="/procurement"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          📋 Procurement (PO & GRN)
         </NavLink>
 
         <div style={styles.sectionLabel}>CATALOG & INVENTORY</div>
@@ -76,6 +94,15 @@ export const Sidebar: React.FC = () => {
         >
           🏬 Warehouses & Stock
         </NavLink>
+        <NavLink
+          to="/operations"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🚚 Transfers & Batches
+        </NavLink>
 
         <div style={styles.sectionLabel}>FINANCE & BOOKS</div>
         <NavLink
@@ -86,6 +113,15 @@ export const Sidebar: React.FC = () => {
           })}
         >
           📑 General Journal
+        </NavLink>
+        <NavLink
+          to="/compliance"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🇳🇵 Nepal VAT Registers
         </NavLink>
         <NavLink
           to="/reports"

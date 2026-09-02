@@ -10,6 +10,9 @@ export interface IStockMovement extends Document {
   type: 'opening' | 'purchase' | 'sale' | 'sale_return' | 'purchase_return' | 'adjustment' | 'transfer_in' | 'transfer_out';
   direction: 'IN' | 'OUT';
   quantity: mongoose.Types.Decimal128;
+  previousQuantity?: mongoose.Types.Decimal128;
+  newQuantity?: mongoose.Types.Decimal128;
+  batchNumber?: string;
   costRate: mongoose.Types.Decimal128;
   totalCost: mongoose.Types.Decimal128;
   date: Date;
@@ -35,6 +38,9 @@ const StockMovementSchema = new Schema<IStockMovement>(
     },
     direction: { type: String, enum: ['IN', 'OUT'], required: true },
     quantity: { type: Schema.Types.Decimal128, required: true },
+    previousQuantity: { type: Schema.Types.Decimal128 },
+    newQuantity: { type: Schema.Types.Decimal128 },
+    batchNumber: { type: String, trim: true },
     costRate: { type: Schema.Types.Decimal128, required: true },
     totalCost: { type: Schema.Types.Decimal128, required: true },
     date: { type: Date, default: Date.now, index: true },

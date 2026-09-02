@@ -2,13 +2,13 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LoginPage } from './features/auth/LoginPage';
-import { DashboardPage } from './features/dashboard/DashboardPage';
 import { PartiesPage } from './features/parties/PartiesPage';
 import { ItemsPage } from './features/items/ItemsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { InventoryDashboard } from './features/inventory/InventoryDashboard';
 import { TransactionManager } from './features/transactions/TransactionManager';
 import { PosTerminal } from './features/transactions/PosTerminal';
+import { ReportsDashboard } from './features/reports/pages/ReportsDashboard';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -34,7 +34,7 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<ReportsDashboard />} />
               <Route path="/sales" element={<TransactionManager moduleType="sales" />} />
               <Route path="/pos" element={<PosTerminal />} />
               <Route path="/purchases" element={<TransactionManager moduleType="purchases" />} />
@@ -48,22 +48,12 @@ export const App: React.FC = () => {
                   <div style={{ padding: 20 }}>
                     <h2>General Journal & Double-Entry Ledger</h2>
                     <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 5 Implementation.
-                    </p>
-                  </div>
-                }
-              />
-              <Route
-                path="/reports"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Nepal IRD VAT & Financial Reports</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
                       Scheduled for Phase 6 Implementation.
                     </p>
                   </div>
                 }
               />
+              <Route path="/reports" element={<ReportsDashboard />} />
             </Route>
           </Route>
 

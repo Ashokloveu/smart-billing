@@ -9,6 +9,7 @@ import { authRouter } from './modules/auth/auth.router.js';
 import { masterRouter } from './modules/master/master.router.js';
 import { inventoryRouter } from './modules/inventory/inventory.router.js';
 import { transactionRouter } from './modules/transaction/transaction.router.js';
+import { reportsRouter } from './modules/reports/reports.routes.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
@@ -39,6 +40,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1', masterRouter);
   app.use('/api/v1/organizations/:orgId', inventoryRouter);
   app.use('/api/v1/organizations/:orgId', transactionRouter);
+  app.use('/api/v1/organizations/:orgId', reportsRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

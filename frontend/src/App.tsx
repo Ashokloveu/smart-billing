@@ -6,6 +6,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { PartiesPage } from './features/parties/PartiesPage';
 import { ItemsPage } from './features/items/ItemsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
+import { InventoryDashboard } from './features/inventory/InventoryDashboard';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -57,17 +58,7 @@ export const App: React.FC = () => {
               <Route path="/parties" element={<PartiesPage />} />
               <Route path="/items" element={<ItemsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route
-                path="/inventory"
-                element={
-                  <div style={{ padding: 20 }}>
-                    <h2>Warehouses & Inventory Subledger</h2>
-                    <p style={{ color: '#64748b', marginTop: 8 }}>
-                      Scheduled for Phase 3 Implementation.
-                    </p>
-                  </div>
-                }
-              />
+              <Route path="/inventory" element={<InventoryDashboard />} />
               <Route
                 path="/accounting"
                 element={

@@ -7,6 +7,7 @@ import { traceId } from './middleware/traceId.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authRouter } from './modules/auth/auth.router.js';
 import { masterRouter } from './modules/master/master.router.js';
+import { inventoryRouter } from './modules/inventory/inventory.router.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
@@ -35,6 +36,7 @@ export const createApp = (): express.Application => {
   // Mount API modules
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1', masterRouter);
+  app.use('/api/v1/organizations/:orgId', inventoryRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

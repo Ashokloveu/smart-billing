@@ -2,15 +2,18 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import { traceId } from './middleware/traceId.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
 import { authRouter } from './modules/auth/auth.router.js';
 import { masterRouter } from './modules/master/master.router.js';
 import { inventoryRouter } from './modules/inventory/inventory.router.js';
 import { transactionRouter } from './modules/transaction/transaction.router.js';
 import { reportsRouter } from './modules/reports/reports.routes.js';
 import { accountingRouter } from './modules/accounting/accounting.routes.js';
+import { complianceRouter } from './modules/compliance/compliance.routes.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
@@ -31,18 +34,38 @@ export const createApp = (): express.Application => {
   // Request correlation tracing
   app.use(traceId);
 
-  // Health and liveness endpoints
+  // Health, liveness, and readiness probes
   app.get('/healthz', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // Mount API modules
-  app.use('/api/v1/auth', authRouter);
+  app.get('/readyz', (_req, res) => {
+    const isDbReady = mongoose.connection.readyState === 1;
+    if (isDbReady) {
+      res.status(200).json({
+        status: 'ready',
+        database: 'connected',
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      res.status(503).json({
+        status: 'not_ready',
+        database: 'disconnected',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // Mount API modules (with rate limiting on authentication routes)
+  app.use('/api/v1/auth', rateLimiter(15 * 60 * 1000, 50), authRouter);
   app.use('/api/v1', masterRouter);
   app.use('/api/v1/organizations/:orgId', inventoryRouter);
   app.use('/api/v1/organizations/:orgId', transactionRouter);
   app.use('/api/v1/organizations/:orgId', reportsRouter);
   app.use('/api/v1/organizations/:orgId', accountingRouter);
+  app.use('/api/v1/organizations/:orgId', complianceRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

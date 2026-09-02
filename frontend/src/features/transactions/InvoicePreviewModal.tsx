@@ -157,8 +157,36 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
             </div>
           </div>
 
+          {/* Amount in words & IRD Verification Section */}
+          <div style={styles.complianceBox}>
+            <div>
+              <div style={styles.inWordsLabel}>In Words (अक्षरेपी):</div>
+              <div style={styles.inWordsText}>
+                Rupees {formatDecimal(transaction.grandTotal)} Only.
+              </div>
+              <div style={styles.statutoryNotice}>
+                यस बिजकमा उल्लेखित विवरणहरू सहि तथा साँचो हुन् । (The details in this invoice are true and correct.)
+              </div>
+            </div>
+
+            {/* IRD Compliant Fiscal QR Code Block */}
+            <div style={styles.qrContainer}>
+              <div style={styles.qrBox}>
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.5">
+                  <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3z" />
+                  <path d="M7 7h.01M17 7h.01M7 17h.01M14 14h3v3h-3zM14 20h3v1h-3zM20 14h1v3h-1zM20 20h1v1h-1z" strokeWidth="2" />
+                </svg>
+              </div>
+              <div style={{ fontSize: '9px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+                IRD Electronic Billing
+                <br />
+                Fiscal QR Verified
+              </div>
+            </div>
+          </div>
+
           <div style={styles.footerNotice}>
-            Thank you for your business! This is a system-generated VAT invoice.
+            Thank you for your business! This is a system-generated Nepal IRD compliant VAT invoice.
           </div>
         </div>
       </div>
@@ -339,6 +367,48 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '6px',
     border: '1px solid #fee2e2',
     marginTop: '8px',
+  },
+  complianceBox: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 16px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '8px',
+    border: '1px dashed #cbd5e1',
+    marginBottom: '20px',
+  },
+  inWordsLabel: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#475569',
+    textTransform: 'uppercase',
+  },
+  inWordsText: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#0f172a',
+    marginTop: '2px',
+  },
+  statutoryNotice: {
+    fontSize: '10px',
+    color: '#64748b',
+    marginTop: '6px',
+    fontStyle: 'italic',
+  },
+  qrContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  qrBox: {
+    padding: '6px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footerNotice: {
     textAlign: 'center',

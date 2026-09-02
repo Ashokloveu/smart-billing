@@ -8,6 +8,7 @@ import { StockBalance } from '../../models/StockBalance.js';
 import { Organization } from '../../models/Organization.js';
 import { Account } from '../../models/Account.js';
 import { JournalEntry } from '../../models/JournalEntry.js';
+import { AuditLog } from '../../models/AuditLog.js';
 import { BadRequestError, NotFoundError } from '../../errors/AppError.js';
 
 export interface TransactionQuery {
@@ -147,6 +148,28 @@ export class TransactionService {
           session
         );
       }
+
+      // 5. Financial Audit Log for Transaction Creation (Phase 7 Compliance)
+      await AuditLog.create(
+        [
+          {
+            organizationId: new mongoose.Types.ObjectId(orgId),
+            userId: new mongoose.Types.ObjectId(userId),
+            action: `transaction_${txn.type}_${txn.status}`,
+            entityType: 'transaction',
+            entityId: txn._id,
+            referenceDocument: txn.documentNumber,
+            newValue: {
+              documentNumber: txn.documentNumber,
+              type: txn.type,
+              status: txn.status,
+              grandTotal: txn.grandTotal,
+              partyName: txn.partyName,
+            },
+          },
+        ],
+        { session }
+      );
 
       await session.commitTransaction();
       return txn;
@@ -533,6 +556,23 @@ export class TransactionService {
       txn.cancellationReason = reason;
       txn.cancelledAt = new Date();
       await txn.save({ session });
+
+      // Financial Audit Log for Transaction Cancellation (Phase 7 Compliance)
+      await AuditLog.create(
+        [
+          {
+            organizationId: new mongoose.Types.ObjectId(orgId),
+            userId: new mongoose.Types.ObjectId(userId),
+            action: `transaction_${txn.type}_cancelled`,
+            entityType: 'transaction',
+            entityId: txn._id,
+            referenceDocument: txn.documentNumber,
+            oldValue: { status: 'posted' },
+            newValue: { status: 'cancelled', cancellationReason: reason },
+          },
+        ],
+        { session }
+      );
 
       await session.commitTransaction();
       return txn;

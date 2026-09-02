@@ -10,6 +10,7 @@ import { TransactionManager } from './features/transactions/TransactionManager';
 import { PosTerminal } from './features/transactions/PosTerminal';
 import { ReportsDashboard } from './features/reports/pages/ReportsDashboard';
 import { AccountingDashboard } from './features/accounting/pages/AccountingDashboard';
+import { VatRegisterPage } from './features/compliance/pages/VatRegisterPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -45,6 +46,7 @@ export const App: React.FC = () => {
               <Route path="/inventory" element={<InventoryDashboard />} />
               <Route path="/accounting" element={<AccountingDashboard />} />
               <Route path="/reports" element={<ReportsDashboard />} />
+              <Route path="/compliance" element={<VatRegisterPage />} />
             </Route>
           </Route>
 

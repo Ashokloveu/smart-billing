@@ -1,0 +1,14 @@
+{
+  "name": "smart-billing-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Billing ERP - Root Workspace Helper",
+  "scripts": {
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test:invariants": "cd backend && node scripts/verify_invariants.js",
+    "test:workflows": "cd backend && node scripts/verify_live_workflows.js",
+    "validate:env": "cd backend && node scripts/validate_env.cjs"
+  }
+}

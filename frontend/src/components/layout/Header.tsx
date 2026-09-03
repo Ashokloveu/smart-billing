@@ -5,9 +5,11 @@ import { NotificationDropdown } from '../../features/operations/components/Notif
 import { OrganizationModal } from './OrganizationModal';
 import { GlobalSearchModal } from '../common/GlobalSearchModal';
 import { apiClient } from '../../services/apiClient';
+import { useLangStore } from '../../stores/langStore';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuthStore();
+  const { lang, toggleLang, t } = useLangStore();
   const navigate = useNavigate();
 
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -81,7 +83,7 @@ export const Header: React.FC = () => {
 
             {isOrgDropdownOpen && (
               <div style={styles.orgDropdown}>
-                <div style={styles.dropdownHeader}>Switch Business / Branch</div>
+                <div style={styles.dropdownHeader}>{t('switchBusiness')}</div>
                 <div style={styles.orgList}>
                   {organizations.map((org) => (
                     <div
@@ -108,7 +110,7 @@ export const Header: React.FC = () => {
                       setIsOrgModalOpen(true);
                     }}
                   >
-                    ➕ Add New Shop / Business
+                    {t('newBusiness')}
                   </button>
                 </div>
               </div>
@@ -122,18 +124,29 @@ export const Header: React.FC = () => {
         {/* Global Spotlight Search Trigger */}
         <div style={styles.searchBarTrigger} onClick={() => setIsSearchOpen(true)}>
           <span style={styles.searchIcon}>🔍</span>
-          <span style={styles.searchPlaceholder}>Search invoice, customer, item, or command...</span>
+          <span style={styles.searchPlaceholder}>{t('searchPlaceholder')}</span>
           <span style={styles.searchKbd}>Ctrl + K</span>
         </div>
 
         <div style={styles.right}>
+          {/* Bilingual Switcher (ENG / NEP) */}
+          <div
+            style={styles.langTogglePill}
+            onClick={toggleLang}
+            title="Toggle English / नेपाली भाषा"
+          >
+            <span style={lang === 'en' ? styles.langActive : styles.langInactive}>🇬🇧 EN</span>
+            <span style={{ color: '#cbd5e1', fontSize: '12px' }}>|</span>
+            <span style={lang === 'np' ? styles.langActive : styles.langInactive}>🇳🇵 नेपाली</span>
+          </div>
+
           <NotificationDropdown />
           <div style={styles.userInfo}>
             <span style={styles.userName}>{user?.fullName || 'Administrator'}</span>
             <span style={styles.userRole}>Chief Administrator</span>
           </div>
           <button onClick={handleLogout} style={styles.logoutBtn} title="Sign Out">
-            Sign Out
+            {lang === 'np' ? 'बाहिरिनुहोस्' : 'Sign Out'}
           </button>
         </div>
       </header>
@@ -317,7 +330,29 @@ const styles: Record<string, React.CSSProperties> = {
   right: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
+    gap: '14px',
+  },
+  langTogglePill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    backgroundColor: '#f1f5f9',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    cursor: 'pointer',
+    border: '1px solid #e2e8f0',
+    userSelect: 'none',
+    transition: 'all 0.2s ease',
+  },
+  langActive: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#2563eb',
+  },
+  langInactive: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: '#64748b',
   },
   userInfo: {
     display: 'flex',

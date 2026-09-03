@@ -47,7 +47,7 @@ export const OnlineStorePage: React.FC = () => {
       <div style={styles.header}>
         <div>
           <div style={styles.badgeRow}>
-            <span style={styles.vyaparPill}>Vyapar Flagship Feature</span>
+            <span style={styles.vyaparPill}>Smart Billing Digital Store</span>
             <span style={styles.statusPill}>● Live & Active</span>
           </div>
           <h1 style={styles.title}>🌐 My Digital Online Store & WhatsApp Catalog</h1>

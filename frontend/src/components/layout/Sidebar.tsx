@@ -1,7 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useLangStore } from '../../stores/langStore';
 
 export const Sidebar: React.FC = () => {
+  const { lang, t } = useLangStore();
+
   return (
     <aside style={styles.sidebar}>
       <div style={styles.brand}>
@@ -10,7 +13,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <nav style={styles.nav}>
-        <div style={styles.sectionLabel}>OPERATIONS</div>
+        <div style={styles.sectionLabel}>{lang === 'np' ? 'सञ्चालन' : 'OPERATIONS'}</div>
         <NavLink
           to="/dashboard"
           style={({ isActive }) => ({
@@ -18,7 +21,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          📊 Dashboard
+          📊 {t('dashboard')}
         </NavLink>
         <NavLink
           to="/online-store"
@@ -27,7 +30,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          🌐 My Online Store
+          🌐 {t('onlineStore')}
         </NavLink>
         <NavLink
           to="/sales"
@@ -36,7 +39,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          🛒 Sales & Invoicing
+          🛒 {t('salesInvoicing')}
         </NavLink>
         <NavLink
           to="/sales-orders"
@@ -108,7 +111,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          ⚡ POS Terminal
+          ⚡ {t('posTerminal')}
         </NavLink>
         <NavLink
           to="/purchases"
@@ -117,7 +120,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          📦 Purchases & Bills
+          📦 {t('purchases')}
         </NavLink>
         <NavLink
           to="/procurement"
@@ -129,7 +132,7 @@ export const Sidebar: React.FC = () => {
           📋 Procurement (PO & GRN)
         </NavLink>
 
-        <div style={styles.sectionLabel}>CATALOG & INVENTORY</div>
+        <div style={styles.sectionLabel}>{lang === 'np' ? 'वस्तु तथा मौज्दात' : 'CATALOG & INVENTORY'}</div>
         <NavLink
           to="/parties"
           style={({ isActive }) => ({
@@ -137,7 +140,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          👥 Parties (Customers)
+          👥 {t('parties')}
         </NavLink>
         <NavLink
           to="/items"
@@ -146,7 +149,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          🏷️ Items & Services
+          🏷️ {t('items')}
         </NavLink>
         <NavLink
           to="/inventory"
@@ -155,7 +158,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          🏬 Warehouses & Stock
+          🏬 {t('warehouses')}
         </NavLink>
         <NavLink
           to="/operations"
@@ -167,7 +170,7 @@ export const Sidebar: React.FC = () => {
           🚚 Transfers & Batches
         </NavLink>
 
-        <div style={styles.sectionLabel}>FINANCE & BOOKS</div>
+        <div style={styles.sectionLabel}>{lang === 'np' ? 'लेखा तथा कर खाता' : 'FINANCE & BOOKS'}</div>
         <NavLink
           to="/accounting"
           style={({ isActive }) => ({
@@ -175,7 +178,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          📑 General Journal
+          📑 {t('accounting')}
         </NavLink>
         <NavLink
           to="/compliance"
@@ -184,7 +187,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          🇳🇵 Nepal VAT Registers
+          🇳🇵 {t('compliance')}
         </NavLink>
         <NavLink
           to="/reports"
@@ -193,10 +196,10 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          📈 VAT & P&L Reports
+          📈 {t('reports')}
         </NavLink>
 
-        <div style={styles.sectionLabel}>HUMAN RESOURCES & PAYROLL</div>
+        <div style={styles.sectionLabel}>{lang === 'np' ? 'मानव संशाधन' : 'HUMAN RESOURCES & PAYROLL'}</div>
         <NavLink
           to="/hr/employees"
           style={({ isActive }) => ({
@@ -236,7 +239,7 @@ export const Sidebar: React.FC = () => {
           📊 Executive BI Analytics
         </NavLink>
 
-        <div style={styles.sectionLabel}>ADMINISTRATION</div>
+        <div style={styles.sectionLabel}>{lang === 'np' ? 'प्रशासन' : 'ADMINISTRATION'}</div>
         <NavLink
           to="/settings"
           style={({ isActive }) => ({
@@ -244,7 +247,7 @@ export const Sidebar: React.FC = () => {
             ...(isActive ? styles.activeLink : {}),
           })}
         >
-          ⚙️ Organization & Settings
+          ⚙️ {t('settings')}
         </NavLink>
       </nav>
 

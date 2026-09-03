@@ -51,7 +51,7 @@ export const PaymentRemindersModal: React.FC<PaymentRemindersModalProps> = ({
         <div style={styles.header}>
           <div>
             <div style={styles.badgeRow}>
-              <span style={styles.featureBadge}>Vyapar Dunning Engine</span>
+              <span style={styles.featureBadge}>Smart Billing Recovery Engine</span>
               <span style={styles.whatsappBadge}>💬 WhatsApp Integrated</span>
             </div>
             <h2 style={styles.title}>📢 Automated WhatsApp Payment Reminders</h2>

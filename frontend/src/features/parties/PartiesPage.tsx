@@ -5,6 +5,7 @@ import { Party } from '../../types/master';
 import { formatDecimal } from '../../utils/decimal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
+import { PaymentRemindersModal } from './PaymentRemindersModal';
 
 export const PartiesPage: React.FC = () => {
   const currentOrg = useOrgStore((state) => state.currentOrg);
@@ -18,6 +19,7 @@ export const PartiesPage: React.FC = () => {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [showRemindersModal, setShowRemindersModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'customer',
@@ -106,9 +108,25 @@ export const PartiesPage: React.FC = () => {
           <h1 style={styles.title}>Parties (Customers & Suppliers)</h1>
           <p style={styles.subtitle}>Manage your buyers, vendors, contact details and PAN.</p>
         </div>
-        <button style={styles.btnPrimary} onClick={() => setShowModal(true)}>
-          + Add Party
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            style={{
+              ...styles.btnSecondary,
+              backgroundColor: '#25D366',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            onClick={() => setShowRemindersModal(true)}
+            title="Send Automated WhatsApp Payment Reminders"
+          >
+            💬 WhatsApp Reminders
+          </button>
+          <button style={styles.btnPrimary} onClick={() => setShowModal(true)}>
+            + Add Party
+          </button>
+        </div>
       </div>
 
       <div style={styles.filterBar}>
@@ -234,6 +252,12 @@ export const PartiesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PaymentRemindersModal
+        isOpen={showRemindersModal}
+        onClose={() => setShowRemindersModal(false)}
+        firmName={currentOrg?.name}
+      />
     </div>
   );
 };

@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LoginPage } from './features/auth/LoginPage';
+import { DashboardPage } from './features/dashboard/DashboardPage';
+import { OnlineStorePage } from './features/store/OnlineStorePage';
 import { PartiesPage } from './features/parties/PartiesPage';
 import { ItemsPage } from './features/items/ItemsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
@@ -49,7 +51,8 @@ export const App: React.FC = () => {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<ReportsDashboard />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/online-store" element={<OnlineStorePage />} />
               <Route path="/sales" element={<TransactionManager moduleType="sales" />} />
               <Route path="/pos" element={<PosTerminal />} />
               <Route path="/purchases" element={<TransactionManager moduleType="purchases" />} />

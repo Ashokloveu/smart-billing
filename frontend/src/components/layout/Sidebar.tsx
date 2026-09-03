@@ -21,6 +21,15 @@ export const Sidebar: React.FC = () => {
           📊 Dashboard
         </NavLink>
         <NavLink
+          to="/online-store"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🌐 My Online Store
+        </NavLink>
+        <NavLink
           to="/sales"
           style={({ isActive }) => ({
             ...styles.link,

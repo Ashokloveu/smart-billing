@@ -1,3 +1,10 @@
+import dns from 'dns';
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (e) {
+  // Ignore in environments where setting DNS servers is restricted
+}
+
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase } from './config/database.js';

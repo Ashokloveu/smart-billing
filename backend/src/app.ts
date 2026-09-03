@@ -38,6 +38,23 @@ export const createApp = (): express.Application => {
   // Request correlation tracing
   app.use(traceId);
 
+  // Root landing endpoint
+  app.get('/', (_req, res) => {
+    res.status(200).json({
+      name: 'Smart Billing ERP - Enterprise API',
+      version: '1.0.0',
+      status: 'online',
+      environment: env.NODE_ENV,
+      database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      endpoints: {
+        health: '/healthz',
+        readiness: '/readyz',
+        apiV1: '/api/v1',
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Health, liveness, and readiness probes
   app.get('/healthz', (_req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -3,6 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { NotificationDropdown } from '../../features/operations/components/NotificationDropdown';
 import { OrganizationModal } from './OrganizationModal';
+import { GlobalSearchModal } from '../common/GlobalSearchModal';
 import { apiClient } from '../../services/apiClient';
 
 export const Header: React.FC = () => {
@@ -13,6 +14,19 @@ export const Header: React.FC = () => {
   const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Global Ctrl+K / Cmd+K hotkey
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     // Fetch user organizations on mount
@@ -105,6 +119,13 @@ export const Header: React.FC = () => {
           <span style={styles.calendarPill}>BS 2081/82 (2026 AD)</span>
         </div>
 
+        {/* Global Spotlight Search Trigger */}
+        <div style={styles.searchBarTrigger} onClick={() => setIsSearchOpen(true)}>
+          <span style={styles.searchIcon}>🔍</span>
+          <span style={styles.searchPlaceholder}>Search invoice, customer, item, or command...</span>
+          <span style={styles.searchKbd}>Ctrl + K</span>
+        </div>
+
         <div style={styles.right}>
           <NotificationDropdown />
           <div style={styles.userInfo}>
@@ -121,6 +142,11 @@ export const Header: React.FC = () => {
         isOpen={isOrgModalOpen}
         onClose={() => setIsOrgModalOpen(false)}
         onCreated={handleOrgCreated}
+      />
+
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
       />
     </>
   );
@@ -253,6 +279,40 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: '#f1f5f9',
     padding: '4px 8px',
     borderRadius: '4px',
+  },
+  searchBarTrigger: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    padding: '7px 14px',
+    width: '380px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  searchIcon: {
+    fontSize: '13px',
+    color: '#94a3b8',
+  },
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: '12px',
+    color: '#94a3b8',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  searchKbd: {
+    fontSize: '10px',
+    fontWeight: 700,
+    color: '#64748b',
+    backgroundColor: '#ffffff',
+    padding: '2px 6px',
+    borderRadius: '4px',
+    border: '1px solid #cbd5e1',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
   },
   right: {
     display: 'flex',

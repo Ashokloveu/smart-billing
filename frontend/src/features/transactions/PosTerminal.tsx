@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useOrgStore } from '../../stores/orgStore';
 import { apiClient } from '../../services/apiClient';
 import { Item } from '../../types/master';
@@ -6,6 +6,12 @@ import { Warehouse } from '../../types/inventory';
 import { formatDecimal } from '../../utils/decimal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { Transaction } from '../../types/transaction';
+
+interface CartItem {
+  item: Item;
+  quantity: number;
+  rate: number;
+}
 
 export const PosTerminal: React.FC = () => {
   const currentOrg = useOrgStore((state) => state.currentOrg);
@@ -19,54 +25,96 @@ export const PosTerminal: React.FC = () => {
   const [search, setSearch] = useState('');
   const [customerName, setCustomerName] = useState('Cash Walk-in Customer');
 
-  // Cart
-  const [cart, setCart] = useState<Array<{ item: Item; quantity: number; rate: number }>>([]);
+  // Multi-Cart Parking System (Cart 1, Cart 2, Cart 3)
+  const [activeCartIndex, setActiveCartIndex] = useState<number>(0);
+  const [carts, setCarts] = useState<Record<number, CartItem[]>>({
+    0: [],
+    1: [],
+    2: [],
+  });
+
+  const cart = carts[activeCartIndex] || [];
+
   const [receivedCash, setReceivedCash] = useState<string>('');
+  const [paymentMode, setPaymentMode] = useState<'cash' | 'fonepay_qr'>('cash');
   const [createdTxn, setCreatedTxn] = useState<Transaction | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Play subtle feedback beep on barcode scan or item add
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 tone
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {
+      // AudioContext not allowed before user gesture
+    }
+  };
 
   useEffect(() => {
     if (!currentOrg?._id) return;
     const fetchMeta = async () => {
-      const [iRes, wRes, fRes, fyRes] = await Promise.all([
-        apiClient.get(`/organizations/${currentOrg._id}/items`, { params: { limit: 100 } }),
-        apiClient.get(`/organizations/${currentOrg._id}/warehouses`),
-        apiClient.get(`/organizations/${currentOrg._id}/firms`),
-        apiClient.get(`/organizations/${currentOrg._id}/fiscal-years`),
-      ]);
-      setItems(iRes.data.data);
-      setWarehouses(wRes.data.data);
+      try {
+        const [iRes, wRes, fRes, fyRes] = await Promise.all([
+          apiClient.get(`/organizations/${currentOrg._id}/items`, { params: { limit: 100 } }),
+          apiClient.get(`/organizations/${currentOrg._id}/warehouses`),
+          apiClient.get(`/organizations/${currentOrg._id}/firms`),
+          apiClient.get(`/organizations/${currentOrg._id}/fiscal-years`),
+        ]);
+        setItems(iRes.data.data || []);
+        setWarehouses(wRes.data.data || []);
 
-      if (fRes.data.data.length > 0) setFirmId(fRes.data.data[0]._id);
-      if (wRes.data.data.length > 0) setWarehouseId(wRes.data.data[0]._id);
-      if (fyRes.data.data.length > 0) setFiscalYearId(fyRes.data.data[0]._id);
+        if (fRes.data?.data?.length > 0) setFirmId(fRes.data.data[0]._id);
+        if (wRes.data?.data?.length > 0) setWarehouseId(wRes.data.data[0]._id);
+        if (fyRes.data?.data?.length > 0) setFiscalYearId(fyRes.data.data[0]._id);
+      } catch (err) {
+        console.error('Failed to load POS meta', err);
+      }
     };
     fetchMeta();
   }, [currentOrg?._id]);
 
+  const updateActiveCart = (newCart: CartItem[]) => {
+    setCarts((prev) => ({
+      ...prev,
+      [activeCartIndex]: newCart,
+    }));
+  };
+
   const addToCart = (item: Item) => {
+    playBeep();
     const existingIdx = cart.findIndex((c) => c.item._id === item._id);
     const rate = Number(formatDecimal(item.salePrice));
     if (existingIdx > -1) {
       const updated = [...cart];
       updated[existingIdx].quantity += 1;
-      setCart(updated);
+      updateActiveCart(updated);
     } else {
-      setCart([...cart, { item, quantity: 1, rate }]);
+      updateActiveCart([...cart, { item, quantity: 1, rate }]);
     }
   };
 
   const updateQuantity = (itemId: string, delta: number) => {
-    setCart(
-      cart
-        .map((c) => {
-          if (c.item._id === itemId) {
-            const newQty = c.quantity + delta;
-            return newQty > 0 ? { ...c, quantity: newQty } : null;
-          }
-          return c;
-        })
-        .filter(Boolean) as any
-    );
+    const updated = cart
+      .map((c) => {
+        if (c.item._id === itemId) {
+          const newQty = c.quantity + delta;
+          return newQty > 0 ? { ...c, quantity: newQty } : null;
+        }
+        return c;
+      })
+      .filter(Boolean) as CartItem[];
+    updateActiveCart(updated);
   };
 
   const subtotal = cart.reduce((acc, c) => acc + c.quantity * c.rate, 0);
@@ -75,7 +123,9 @@ export const PosTerminal: React.FC = () => {
   const changeDue = Math.max(0, Number(receivedCash || 0) - grandTotal);
 
   const handleCheckout = async () => {
-    if (cart.length === 0 || !currentOrg?._id) return;
+    if (cart.length === 0 || !currentOrg?._id || isProcessing) return;
+    setIsProcessing(true);
+
     try {
       const res = await apiClient.post(`/organizations/${currentOrg._id}/transactions`, {
         firmId,
@@ -83,12 +133,14 @@ export const PosTerminal: React.FC = () => {
         financialYearId: fiscalYearId,
         type: 'pos_invoice',
         partyName: customerName,
-        bsDate: '2082-05-18',
-        paymentMode: 'cash',
+        bsDate: '2081-11-20',
+        paymentMode: paymentMode === 'fonepay_qr' ? 'bank' : 'cash',
         paidAmount: grandTotal.toFixed(2),
         status: 'posted',
         lines: cart.map((c) => ({
           itemId: c.item._id,
+          itemName: c.item.name,
+          itemCode: c.item.code,
           quantity: c.quantity.toString(),
           rate: c.rate.toString(),
           discountAmount: '0.00',
@@ -97,11 +149,13 @@ export const PosTerminal: React.FC = () => {
       });
 
       setCreatedTxn(res.data.data);
-      setCart([]);
+      updateActiveCart([]);
       setReceivedCash('');
-      alert(`POS Invoice ${res.data.data.documentNumber} generated successfully!`);
+      setCustomerName('Cash Walk-in Customer');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error processing POS sale');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -114,50 +168,97 @@ export const PosTerminal: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      {/* Catalog Grid */}
+      {/* Left: Product Catalog & Barcode Bar */}
       <div style={styles.catalogSection}>
+        {/* Search & Warehouse Context Bar */}
         <div style={styles.catalogHeader}>
-          <input
-            type="text"
-            placeholder="Scan barcode or search SKU/Item..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={styles.searchBar}
-          />
-          <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} style={styles.whSelect}>
+          <div style={styles.searchWrapper}>
+            <span style={styles.barcodeIcon}>🏷️</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Scan barcode or type SKU / item name (Auto-focus active)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={styles.searchBar}
+            />
+          </div>
+          <select
+            value={warehouseId}
+            onChange={(e) => setWarehouseId(e.target.value)}
+            style={styles.whSelect}
+          >
             {warehouses.map((w) => (
               <option key={w._id} value={w._id}>
-                Store: {w.name}
+                🏬 {w.name}
               </option>
             ))}
           </select>
         </div>
 
+        {/* Product Cards Grid */}
         <div style={styles.itemGrid}>
           {filteredItems.map((item) => (
-            <div key={item._id} style={styles.itemCard} onClick={() => addToCart(item)}>
-              <span style={styles.itemCode}>{item.code}</span>
+            <div
+              key={item._id}
+              style={styles.itemCard}
+              onClick={() => addToCart(item)}
+              title="Click to add to bill"
+            >
+              <div style={styles.itemCardTop}>
+                <span style={styles.itemCode}>{item.code}</span>
+                <span style={styles.itemUnit}>
+                  {typeof item.primaryUnitId === 'object' ? item.primaryUnitId.abbreviation : 'PCS'}
+                </span>
+              </div>
               <h4 style={styles.itemName}>{item.name}</h4>
-              <div style={styles.itemPrice}>NPR {formatDecimal(item.salePrice)}</div>
+              <div style={styles.itemCardBottom}>
+                <div style={styles.itemPrice}>NPR {formatDecimal(item.salePrice)}</div>
+                <button style={styles.addPillBtn}>+ Add</button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Cart & Billing Section */}
+      {/* Right: Counter Cart, Multi-Cart Parking & Checkout */}
       <div style={styles.cartSection}>
-        <div style={styles.cartHeader}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0 }}>POS Register</h2>
-          <span style={styles.vatPill}>Nepal 13% VAT</span>
+        {/* Cart Header & Hold Tabs */}
+        <div style={styles.cartHeaderTop}>
+          <div>
+            <h2 style={styles.cartTitle}>⚡ POS Counter Register</h2>
+            <div style={styles.vatPill}>Nepal IRD 13% VAT Auto-Calculated</div>
+          </div>
+
+          {/* Multi-Cart Parking Tabs */}
+          <div style={styles.cartTabs}>
+            {[0, 1, 2].map((idx) => {
+              const count = carts[idx]?.length || 0;
+              return (
+                <button
+                  key={idx}
+                  style={{
+                    ...styles.cartTabBtn,
+                    ...(activeCartIndex === idx ? styles.cartTabBtnActive : {}),
+                  }}
+                  onClick={() => setActiveCartIndex(idx)}
+                >
+                  Cart {idx + 1} {count > 0 && <span style={styles.tabBadge}>{count}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Customer</label>
+        {/* Customer Input */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={styles.inputLabel}>Customer Name or Phone</label>
           <input
             type="text"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
             style={styles.customerInput}
+            placeholder="Cash Walk-in Customer"
           />
         </div>
 
@@ -166,97 +267,470 @@ export const PosTerminal: React.FC = () => {
           {cart.map((c) => (
             <div key={c.item._id} style={styles.cartItem}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: '13px' }}>{c.item.name}</div>
-                <div style={{ fontSize: '11px', color: '#64748b' }}>@ NPR {c.rate.toFixed(2)}</div>
+                <div style={styles.cartItemTitle}>{c.item.name}</div>
+                <div style={styles.cartItemRate}>@ NPR {formatDecimal(c.rate)}</div>
               </div>
               <div style={styles.qtyControls}>
                 <button style={styles.qtyBtn} onClick={() => updateQuantity(c.item._id, -1)}>
                   -
                 </button>
-                <span style={{ fontWeight: 700 }}>{c.quantity}</span>
+                <span style={styles.qtyText}>{c.quantity}</span>
                 <button style={styles.qtyBtn} onClick={() => updateQuantity(c.item._id, 1)}>
                   +
                 </button>
               </div>
-              <div style={{ fontWeight: 700, fontSize: '13px', width: '80px', textAlign: 'right' }}>
-                NPR {(c.quantity * c.rate).toFixed(2)}
+              <div style={styles.cartItemTotal}>
+                NPR {formatDecimal(c.quantity * c.rate)}
               </div>
             </div>
           ))}
-          {cart.length === 0 && <div style={styles.emptyCart}>Cart is empty. Tap items on the left to bill.</div>}
+          {cart.length === 0 && (
+            <div style={styles.emptyCart}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🛒</div>
+              <div style={{ fontWeight: 600, color: '#475569' }}>Current Cart is Empty</div>
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                Tap items or scan barcode to begin billing.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Totals Summary */}
         <div style={styles.cartTotals}>
           <div style={styles.totalsRow}>
-            <span>Subtotal:</span>
-            <span>NPR {subtotal.toFixed(2)}</span>
+            <span>Taxable Subtotal:</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(subtotal)}</span>
           </div>
           <div style={styles.totalsRow}>
-            <span>VAT (13%):</span>
-            <span>NPR {vatAmount.toFixed(2)}</span>
+            <span>Nepal VAT (13%):</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(vatAmount)}</span>
           </div>
           <div style={styles.grandTotal}>
             <span>Grand Total:</span>
-            <span>NPR {grandTotal.toFixed(2)}</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(grandTotal)}</span>
           </div>
 
-          <div style={{ marginTop: '14px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600 }}>Tendered Cash (NPR)</label>
-            <input
-              type="number"
-              placeholder="e.g. 1000"
-              value={receivedCash}
-              onChange={(e) => setReceivedCash(e.target.value)}
-              style={styles.cashInput}
-            />
+          {/* Payment Method Switcher */}
+          <div style={styles.paymentMethodTabs}>
+            <button
+              style={{
+                ...styles.pmTab,
+                ...(paymentMode === 'cash' ? styles.pmTabActive : {}),
+              }}
+              onClick={() => setPaymentMode('cash')}
+            >
+              💵 Cash Tender
+            </button>
+            <button
+              style={{
+                ...styles.pmTab,
+                ...(paymentMode === 'fonepay_qr' ? styles.pmTabActive : {}),
+              }}
+              onClick={() => {
+                setPaymentMode('fonepay_qr');
+                setReceivedCash(grandTotal.toFixed(2));
+              }}
+            >
+              📱 Fonepay / eSewa QR
+            </button>
           </div>
 
-          {Number(receivedCash) > 0 && (
-            <div style={styles.changeDue}>
-              Change to Return: <strong>NPR {changeDue.toFixed(2)}</strong>
+          {/* Quick Cash Denomination Shortcuts */}
+          {paymentMode === 'cash' && (
+            <div style={{ marginTop: '10px' }}>
+              <div style={styles.denomRow}>
+                <button style={styles.denomBtn} onClick={() => setReceivedCash(grandTotal.toFixed(2))}>
+                  Exact
+                </button>
+                <button style={styles.denomBtn} onClick={() => setReceivedCash('500')}>
+                  500
+                </button>
+                <button style={styles.denomBtn} onClick={() => setReceivedCash('1000')}>
+                  1000
+                </button>
+                <button style={styles.denomBtn} onClick={() => setReceivedCash('2000')}>
+                  2000
+                </button>
+              </div>
+
+              <input
+                type="number"
+                placeholder="Tendered Amount (NPR)"
+                value={receivedCash}
+                onChange={(e) => setReceivedCash(e.target.value)}
+                style={styles.cashInput}
+              />
+
+              {Number(receivedCash) > 0 && (
+                <div style={styles.changeDue}>
+                  Change Return: <strong>NPR {formatDecimal(changeDue)}</strong>
+                </div>
+              )}
             </div>
           )}
 
           <button
             onClick={handleCheckout}
-            disabled={cart.length === 0}
-            style={{ ...styles.checkoutBtn, opacity: cart.length === 0 ? 0.6 : 1 }}
+            disabled={cart.length === 0 || isProcessing}
+            style={{
+              ...styles.checkoutBtn,
+              opacity: cart.length === 0 || isProcessing ? 0.6 : 1,
+            }}
           >
-            ⚡ Complete Sale & Print (Cash)
+            {isProcessing ? 'Processing Bill...' : '⚡ Complete Sale & Instant Bill (F2)'}
           </button>
         </div>
       </div>
 
-      {createdTxn && <InvoicePreviewModal transaction={createdTxn} onClose={() => setCreatedTxn(null)} />}
+      {createdTxn && (
+        <InvoicePreviewModal
+          transaction={createdTxn}
+          onClose={() => setCreatedTxn(null)}
+        />
+      )}
     </div>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: { display: 'flex', gap: '20px', height: 'calc(100vh - 120px)' },
-  catalogSection: { flex: 3, display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '16px' },
-  catalogHeader: { display: 'flex', gap: '12px', marginBottom: '16px' },
-  searchBar: { flex: 1, padding: '10px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' },
-  whSelect: { padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' },
-  itemGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px', overflowY: 'auto', flex: 1 },
-  itemCard: { padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', cursor: 'pointer', transition: 'transform 0.1s' },
-  itemCode: { fontSize: '11px', fontFamily: 'monospace', color: '#64748b' },
-  itemName: { fontSize: '13px', fontWeight: 700, color: '#0f172a', margin: '4px 0 8px 0' },
-  itemPrice: { fontSize: '14px', fontWeight: 700, color: '#1e3a8a' },
-  cartSection: { flex: 2, display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px' },
-  cartHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' },
-  vatPill: { fontSize: '11px', fontWeight: 700, color: '#1e3a8a', backgroundColor: '#eff6ff', padding: '3px 8px', borderRadius: '4px' },
-  customerInput: { width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' },
-  cartList: { flex: 1, overflowY: 'auto', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '10px 0' },
-  cartItem: { display: 'flex', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f8fafc' },
-  qtyControls: { display: 'flex', alignItems: 'center', gap: '8px' },
-  qtyBtn: { width: '26px', height: '26px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', cursor: 'pointer', fontWeight: 700 },
-  emptyCart: { textAlign: 'center', color: '#94a3b8', fontSize: '13px', padding: '40px 0' },
-  cartTotals: { paddingTop: '14px' },
-  totalsRow: { display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b', marginBottom: '4px' },
-  grandTotal: { display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: '8px 0', borderTop: '1px solid #e2e8f0', paddingTop: '8px' },
-  cashInput: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '16px', fontWeight: 700, marginTop: '4px' },
-  changeDue: { marginTop: '8px', fontSize: '13px', color: '#059669', backgroundColor: '#ecfdf5', padding: '8px', borderRadius: '6px', textAlign: 'center' },
-  checkoutBtn: { width: '100%', marginTop: '12px', padding: '14px', backgroundColor: '#059669', color: '#ffffff', borderRadius: '8px', fontSize: '15px', fontWeight: 700, border: 'none', cursor: 'pointer' },
+  container: {
+    display: 'flex',
+    gap: '20px',
+    height: 'calc(100vh - 110px)',
+    animation: 'fadeIn 0.2s ease-out',
+  },
+  catalogSection: {
+    flex: 3,
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0',
+    padding: '18px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  },
+  catalogHeader: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '16px',
+  },
+  searchWrapper: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #cbd5e1',
+    borderRadius: '10px',
+    padding: '0 12px',
+  },
+  barcodeIcon: {
+    fontSize: '16px',
+  },
+  searchBar: {
+    flex: 1,
+    padding: '10px 0',
+    border: 'none',
+    outline: 'none',
+    fontSize: '14px',
+    backgroundColor: 'transparent',
+  },
+  whSelect: {
+    padding: '10px 14px',
+    borderRadius: '10px',
+    border: '1.5px solid #cbd5e1',
+    fontSize: '13px',
+    fontWeight: 600,
+    backgroundColor: '#ffffff',
+  },
+  itemGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '12px',
+    overflowY: 'auto',
+    flex: 1,
+    paddingRight: '4px',
+  },
+  itemCard: {
+    padding: '14px',
+    borderRadius: '12px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#f8fafc',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  itemCardTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '6px',
+  },
+  itemCode: {
+    fontSize: '10px',
+    fontFamily: 'monospace',
+    color: '#64748b',
+    backgroundColor: '#ffffff',
+    padding: '2px 5px',
+    borderRadius: '4px',
+    border: '1px solid #e2e8f0',
+  },
+  itemUnit: {
+    fontSize: '10px',
+    fontWeight: 700,
+    color: '#0284c7',
+  },
+  itemName: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: '0 0 10px 0',
+    lineHeight: '1.3',
+  },
+  itemCardBottom: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemPrice: {
+    fontSize: '14px',
+    fontWeight: 800,
+    color: '#2563eb',
+    fontFamily: 'JetBrains Mono, monospace',
+  },
+  addPillBtn: {
+    padding: '4px 8px',
+    fontSize: '11px',
+    fontWeight: 700,
+    backgroundColor: '#eff6ff',
+    color: '#2563eb',
+    borderRadius: '6px',
+    border: '1px solid #bfdbfe',
+  },
+  cartSection: {
+    flex: 2,
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    border: '1px solid #e2e8f0',
+    padding: '20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  },
+  cartHeaderTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '14px',
+  },
+  cartTitle: {
+    fontSize: '17px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: 0,
+  },
+  vatPill: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#059669',
+    marginTop: '2px',
+  },
+  cartTabs: {
+    display: 'flex',
+    gap: '4px',
+    backgroundColor: '#f1f5f9',
+    padding: '3px',
+    borderRadius: '8px',
+  },
+  cartTabBtn: {
+    padding: '5px 10px',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#64748b',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  cartTabBtnActive: {
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+  },
+  tabBadge: {
+    fontSize: '9px',
+    fontWeight: 700,
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    padding: '1px 5px',
+    borderRadius: '999px',
+  },
+  inputLabel: {
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#64748b',
+    display: 'block',
+    marginBottom: '4px',
+  },
+  customerInput: {
+    width: '100%',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13px',
+    outline: 'none',
+  },
+  cartList: {
+    flex: 1,
+    overflowY: 'auto',
+    borderTop: '1px solid #f1f5f9',
+    borderBottom: '1px solid #f1f5f9',
+    padding: '8px 0',
+  },
+  cartItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '8px 0',
+    borderBottom: '1px solid #f8fafc',
+    gap: '10px',
+  },
+  cartItemTitle: {
+    fontWeight: 700,
+    fontSize: '13px',
+    color: '#0f172a',
+  },
+  cartItemRate: {
+    fontSize: '11px',
+    color: '#64748b',
+    fontFamily: 'JetBrains Mono, monospace',
+  },
+  qtyControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  qtyBtn: {
+    width: '26px',
+    height: '26px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    cursor: 'pointer',
+    fontWeight: 700,
+    fontSize: '14px',
+  },
+  qtyText: {
+    fontWeight: 700,
+    fontSize: '13px',
+    minWidth: '20px',
+    textAlign: 'center',
+  },
+  cartItemTotal: {
+    fontWeight: 700,
+    fontSize: '13px',
+    width: '85px',
+    textAlign: 'right',
+    fontFamily: 'JetBrains Mono, monospace',
+    color: '#0f172a',
+  },
+  emptyCart: {
+    textAlign: 'center',
+    color: '#94a3b8',
+    padding: '40px 0',
+  },
+  cartTotals: {
+    paddingTop: '12px',
+  },
+  totalsRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '12px',
+    color: '#64748b',
+    marginBottom: '4px',
+  },
+  grandTotal: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '18px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: '6px 0',
+    borderTop: '1px solid #e2e8f0',
+    paddingTop: '8px',
+  },
+  paymentMethodTabs: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '6px',
+    margin: '10px 0',
+  },
+  pmTab: {
+    padding: '8px',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#64748b',
+    backgroundColor: '#f1f5f9',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    cursor: 'pointer',
+    textAlign: 'center',
+  },
+  pmTabActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#2563eb',
+    color: '#2563eb',
+    fontWeight: 700,
+  },
+  denomRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '6px',
+    marginBottom: '8px',
+  },
+  denomBtn: {
+    padding: '6px 4px',
+    fontSize: '12px',
+    fontWeight: 700,
+    backgroundColor: '#f8fafc',
+    border: '1px solid #cbd5e1',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontFamily: 'JetBrains Mono, monospace',
+  },
+  cashInput: {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1.5px solid #cbd5e1',
+    fontSize: '16px',
+    fontWeight: 700,
+    fontFamily: 'JetBrains Mono, monospace',
+    outline: 'none',
+  },
+  changeDue: {
+    marginTop: '6px',
+    fontSize: '12px',
+    color: '#059669',
+    backgroundColor: '#ecfdf5',
+    padding: '6px 10px',
+    borderRadius: '6px',
+    textAlign: 'center',
+    fontFamily: 'JetBrains Mono, monospace',
+  },
+  checkoutBtn: {
+    width: '100%',
+    marginTop: '12px',
+    padding: '13px',
+    backgroundColor: '#059669',
+    color: '#ffffff',
+    borderRadius: '10px',
+    fontSize: '14px',
+    fontWeight: 700,
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+  },
 };

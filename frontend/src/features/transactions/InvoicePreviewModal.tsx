@@ -31,6 +31,20 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
     window.open(waUrl, '_blank');
   };
 
+  // Email Share Link Generator
+  const handleEmailShare = () => {
+    const subject = encodeURIComponent(`Tax Invoice #${transaction.documentNumber} from ${firmName}`);
+    const body = encodeURIComponent(`Dear ${partyName},\n\nPlease find the details for your tax invoice #${transaction.documentNumber}.\n\nTotal Amount: NPR ${formatDecimal(transaction.grandTotal)}\nDate: ${transaction.bsDate} BS\n\nThank you for choosing ${firmName}.\n\nSmart Billing ERP`);
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+  };
+
+  // SMS Share Link Generator
+  const handleSmsShare = () => {
+    const message = encodeURIComponent(`Namaste ${partyName}, your bill #${transaction.documentNumber} from ${firmName} for NPR ${formatDecimal(transaction.grandTotal)} is generated. Thank you!`);
+    const cleanPhone = partyPhone ? partyPhone.replace(/[^0-9]/g, '') : '';
+    window.open(`sms:${cleanPhone}?body=${message}`, '_blank');
+  };
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -59,10 +73,16 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
 
           <div style={styles.rightActions}>
             <button style={styles.whatsappBtn} onClick={handleWhatsAppShare} title="Share on WhatsApp">
-              💬 Share on WhatsApp
+              💬 WhatsApp
+            </button>
+            <button style={styles.emailBtn} onClick={handleEmailShare} title="Share via Email">
+              ✉️ Email
+            </button>
+            <button style={styles.smsBtn} onClick={handleSmsShare} title="Share via SMS">
+              📱 SMS
             </button>
             <button style={styles.printBtn} onClick={() => window.print()}>
-              🖨️ Print Invoice
+              🖨️ Print
             </button>
             <button style={styles.closeBtn} onClick={onClose}>
               ✕ Close
@@ -74,10 +94,15 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
         {template === 'a4_modern' ? (
           <div style={styles.invoiceSheet}>
             <div style={styles.header}>
-              <div>
-                <h1 style={styles.companyName}>{firmName}</h1>
-                <div style={styles.subText}>Branch: {firmCode} • Head Office Kathmandu</div>
-                <div style={styles.subText}>VAT / PAN: 601234567 • Phone: +977-1-4400000</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={styles.logoBox}>
+                  <span>🏢</span>
+                </div>
+                <div>
+                  <h1 style={styles.companyName}>{firmName}</h1>
+                  <div style={styles.subText}>Branch: {firmCode} • Head Office Kathmandu</div>
+                  <div style={styles.subText}>VAT / PAN: 601234567 • Phone: +977-1-4400000</div>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={styles.docTitle}>
@@ -356,8 +381,28 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  emailBtn: {
+    padding: '8px 14px',
+    backgroundColor: '#0284c7',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  smsBtn: {
+    padding: '8px 14px',
+    backgroundColor: '#475569',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 700,
     cursor: 'pointer',
   },
   printBtn: {
@@ -366,8 +411,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#ffffff',
     border: 'none',
     borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontSize: '12px',
+    fontWeight: 700,
     cursor: 'pointer',
   },
   closeBtn: {
@@ -376,9 +421,20 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#475569',
     border: 'none',
     borderRadius: '6px',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  logoBox: {
+    width: '48px',
+    height: '48px',
+    borderRadius: '10px',
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '24px',
   },
   invoiceSheet: {
     padding: '36px',

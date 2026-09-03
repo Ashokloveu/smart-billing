@@ -18,6 +18,12 @@ import { EmployeeDirectoryPage } from './features/hr/pages/EmployeeDirectoryPage
 import { AttendanceManagementPage } from './features/hr/pages/AttendanceManagementPage';
 import { PayrollProcessingPage } from './features/hr/pages/PayrollProcessingPage';
 import { ExecutiveBiPage } from './features/hr/pages/ExecutiveBiPage';
+import { LeadManagementPage } from './features/crm/pages/LeadManagementPage';
+import { OpportunityPipelinePage } from './features/crm/pages/OpportunityPipelinePage';
+import { QuotationListPage } from './features/crm/pages/QuotationListPage';
+import { Customer360ViewPage } from './features/crm/pages/Customer360ViewPage';
+import { SalesTargetsPage } from './features/crm/pages/SalesTargetsPage';
+import { CustomerPortalPage } from './features/crm/pages/CustomerPortalPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -61,6 +67,12 @@ export const App: React.FC = () => {
               <Route path="/hr/attendance" element={<AttendanceManagementPage />} />
               <Route path="/payroll" element={<PayrollProcessingPage />} />
               <Route path="/bi-analytics" element={<ExecutiveBiPage />} />
+              <Route path="/crm/leads" element={<LeadManagementPage />} />
+              <Route path="/crm/opportunities" element={<OpportunityPipelinePage />} />
+              <Route path="/crm/quotations" element={<QuotationListPage />} />
+              <Route path="/crm/customer-360" element={<Customer360ViewPage />} />
+              <Route path="/crm/targets" element={<SalesTargetsPage />} />
+              <Route path="/portal" element={<CustomerPortalPage />} />
             </Route>
           </Route>
 

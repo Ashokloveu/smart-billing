@@ -52,6 +52,16 @@ export const PERMISSIONS = {
   AUDIT_VIEW: 'audit:view',
   BACKUP_CREATE: 'backup:create',
 
+  // CRM
+  CRM_VIEW: 'crm:view',
+  CRM_CREATE: 'crm:create',
+  CRM_UPDATE: 'crm:update',
+  CRM_DELETE: 'crm:delete',
+  CRM_ASSIGN_LEAD: 'crm:assign_lead',
+  CRM_APPROVE_QUOTATION: 'crm:approve_quotation',
+  CRM_VIEW_REPORTS: 'crm:view_reports',
+  CRM_EXPORT_DATA: 'crm:export_data',
+
   // All Access Wildcard
   ALL: '*',
 } as const;

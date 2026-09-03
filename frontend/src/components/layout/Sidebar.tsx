@@ -39,6 +39,60 @@ export const Sidebar: React.FC = () => {
           📑 Sales Orders & O2C
         </NavLink>
         <NavLink
+          to="/crm/leads"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🎯 Leads & Inbound
+        </NavLink>
+        <NavLink
+          to="/crm/opportunities"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          💼 Opportunity Pipeline
+        </NavLink>
+        <NavLink
+          to="/crm/quotations"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          📜 Proposals & Quotes
+        </NavLink>
+        <NavLink
+          to="/crm/customer-360"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          👥 Customer 360°
+        </NavLink>
+        <NavLink
+          to="/crm/targets"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🎯 Sales Quotas
+        </NavLink>
+        <NavLink
+          to="/portal"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+        >
+          🌐 Customer Portal
+        </NavLink>
+        <NavLink
           to="/pos"
           style={({ isActive }) => ({
             ...styles.link,

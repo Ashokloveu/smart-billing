@@ -5,6 +5,7 @@ import { apiClient } from '../../services/apiClient';
 import { Item } from '../../types/master';
 import { formatDecimal } from '../../utils/decimal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
+import { QrCodeGenerator } from '../../components/common/QrCodeGenerator';
 import { Transaction } from '../../types/transaction';
 
 interface CartItem {
@@ -396,6 +397,26 @@ export const PosTerminal: React.FC = () => {
                   Change Return: <strong>NPR {formatDecimal(changeDue)}</strong>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Dynamic Fonepay / eSewa QR Box */}
+          {paymentMode === 'fonepay_qr' && (
+            <div style={styles.qrPaymentBox}>
+              <div style={styles.qrHeader}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#dc2626' }}>⚡ DYNAMIC FONEPAY QR</span>
+                <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>NPR {formatDecimal(grandTotal)}</span>
+              </div>
+              <div style={styles.qrCenter}>
+                <QrCodeGenerator
+                  value={`fonepay://pay?merchant=${encodeURIComponent(currentOrg?.name || 'Smart Billing')}&pan=601234567&amount=${grandTotal.toFixed(2)}&ref=POS-${Date.now().toString().slice(-6)}`}
+                  size={135}
+                  label={`Scan to Pay NPR ${formatDecimal(grandTotal)}`}
+                />
+              </div>
+              <div style={styles.qrCaption}>
+                Auto-fills exact amount in eSewa, Khalti, Global Smart, Nabil & All Nepal Mobank
+              </div>
             </div>
           )}
 
@@ -870,5 +891,34 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     cursor: 'pointer',
     boxShadow: '0 4px 12px rgba(5, 150, 105, 0.3)',
+  },
+  qrPaymentBox: {
+    marginTop: '10px',
+    padding: '12px',
+    backgroundColor: '#fff1f2',
+    border: '1.5px solid #fecdd3',
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  qrHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    width: '100%',
+    alignItems: 'center',
+  },
+  qrCenter: {
+    backgroundColor: '#ffffff',
+    padding: '8px',
+    borderRadius: '10px',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+  },
+  qrCaption: {
+    fontSize: '10px',
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 1.3,
   },
 };

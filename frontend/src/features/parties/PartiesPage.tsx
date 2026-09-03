@@ -99,6 +99,36 @@ export const PartiesPage: React.FC = () => {
       header: 'Credit Limit',
       accessor: (p: Party) => `NPR ${formatDecimal(p.creditLimit)}`,
     },
+    {
+      header: 'Remind',
+      accessor: (p: Party) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const cleanPhone = (p.phone || '').replace(/[^0-9]/g, '');
+            const msg = encodeURIComponent(`Namaste ${p.name} ji! 🙏\nThis is a friendly reminder regarding your account balance at ${currentOrg?.name || 'Smart Billing'}.\nPlease contact us to reconcile your ledger. Thank you! ⚡`);
+            const waUrl = cleanPhone ? `https://wa.me/${cleanPhone.length === 10 ? '977' + cleanPhone : cleanPhone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+            window.open(waUrl, '_blank');
+          }}
+          style={{
+            padding: '4px 8px',
+            backgroundColor: '#25D366',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+          title="Send Direct WhatsApp Udharo Reminder"
+        >
+          💬 WhatsApp
+        </button>
+      ),
+    },
   ];
 
   return (

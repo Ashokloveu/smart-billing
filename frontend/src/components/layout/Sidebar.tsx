@@ -133,6 +133,46 @@ export const Sidebar: React.FC = () => {
           📈 VAT & P&L Reports
         </NavLink>
 
+        <div style={styles.sectionLabel}>HUMAN RESOURCES & PAYROLL</div>
+        <NavLink
+          to="/hr/employees"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+         >
+          👥 Employee Directory
+        </NavLink>
+        <NavLink
+          to="/hr/attendance"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+         >
+          ⏱️ Attendance & Leaves
+        </NavLink>
+        <NavLink
+          to="/payroll"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+         >
+          💰 Nepal Payroll & SSF
+        </NavLink>
+
+        <div style={styles.sectionLabel}>ENTERPRISE BI & AUDIT</div>
+        <NavLink
+          to="/bi-analytics"
+          style={({ isActive }) => ({
+            ...styles.link,
+            ...(isActive ? styles.activeLink : {}),
+          })}
+         >
+          📊 Executive BI Analytics
+        </NavLink>
+
         <div style={styles.sectionLabel}>ADMINISTRATION</div>
         <NavLink
           to="/settings"

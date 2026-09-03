@@ -14,6 +14,10 @@ import { VatRegisterPage } from './features/compliance/pages/VatRegisterPage';
 import { ProcurementPage } from './features/operations/pages/ProcurementPage';
 import { SalesOrderPage } from './features/operations/pages/SalesOrderPage';
 import { WarehouseOperationsPage } from './features/operations/pages/WarehouseOperationsPage';
+import { EmployeeDirectoryPage } from './features/hr/pages/EmployeeDirectoryPage';
+import { AttendanceManagementPage } from './features/hr/pages/AttendanceManagementPage';
+import { PayrollProcessingPage } from './features/hr/pages/PayrollProcessingPage';
+import { ExecutiveBiPage } from './features/hr/pages/ExecutiveBiPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -53,6 +57,10 @@ export const App: React.FC = () => {
               <Route path="/procurement" element={<ProcurementPage />} />
               <Route path="/sales-orders" element={<SalesOrderPage />} />
               <Route path="/operations" element={<WarehouseOperationsPage />} />
+              <Route path="/hr/employees" element={<EmployeeDirectoryPage />} />
+              <Route path="/hr/attendance" element={<AttendanceManagementPage />} />
+              <Route path="/payroll" element={<PayrollProcessingPage />} />
+              <Route path="/bi-analytics" element={<ExecutiveBiPage />} />
             </Route>
           </Route>
 

@@ -16,6 +16,7 @@ import { accountingRouter } from './modules/accounting/accounting.routes.js';
 import { complianceRouter } from './modules/compliance/compliance.routes.js';
 import { operationsRouter } from './modules/operations/operations.routes.js';
 import { notificationRouter } from './modules/notifications/notification.routes.js';
+import { hrRouter } from './modules/hr/hr.routes.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
@@ -70,6 +71,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1/organizations/:orgId', complianceRouter);
   app.use('/api/v1/organizations/:orgId', operationsRouter);
   app.use('/api/v1/organizations/:orgId', notificationRouter);
+  app.use('/api/v1/organizations/:orgId', hrRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

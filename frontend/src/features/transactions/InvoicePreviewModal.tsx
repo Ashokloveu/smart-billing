@@ -1,194 +1,288 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Transaction } from '../../types/transaction';
 import { formatDecimal } from '../../utils/decimal';
+import { QrCodeGenerator } from '../../components/common/QrCodeGenerator';
 
 interface InvoicePreviewModalProps {
   transaction: Transaction | null;
   onClose: () => void;
 }
 
+type TemplateType = 'a4_modern' | 'thermal_80mm';
+
 export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transaction, onClose }) => {
+  const [template, setTemplate] = useState<TemplateType>('a4_modern');
   if (!transaction) return null;
+
+  const firmName = typeof transaction.firmId === 'object' ? transaction.firmId.name : 'Smart Billing Store';
+  const firmCode = typeof transaction.firmId === 'object' ? transaction.firmId.code : 'Main Branch';
+  const partyName = transaction.partyName || (typeof transaction.partyId === 'object' ? transaction.partyId.name : 'Cash Customer');
+  const partyPan = transaction.partyPan || (typeof transaction.partyId === 'object' ? transaction.partyId.panNumber : '');
+  const partyPhone = typeof transaction.partyId === 'object' ? transaction.partyId.phone : '';
+
+  // Dynamic Fonepay/eSewa QR Payload: Includes Merchant, Invoice number, and amount
+  const qrPaymentPayload = `fonepay://pay?merchant=${encodeURIComponent(firmName)}&pan=601234567&amount=${formatDecimal(transaction.grandTotal)}&ref=${transaction.documentNumber}`;
+
+  // WhatsApp Share Link Generator
+  const handleWhatsAppShare = () => {
+    const message = `Namaste ${partyName}! 🙏%0AHere is your invoice *#${transaction.documentNumber}* from *${firmName}*.%0A%0A*Total Amount:* NPR ${formatDecimal(transaction.grandTotal)}%0A*Date:* ${transaction.bsDate} BS%0A*Payment Mode:* ${(transaction.paymentMode || 'CASH').toUpperCase()}%0A%0AThank you for doing business with us!`;
+    const cleanPhone = partyPhone ? partyPhone.replace(/[^0-9]/g, '') : '';
+    const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${message}` : `https://wa.me/?text=${message}`;
+    window.open(waUrl, '_blank');
+  };
 
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
         {/* Actions bar */}
         <div style={styles.actionsBar}>
-          <button style={styles.printBtn} onClick={() => window.print()}>
-            🖨️ Print Invoice
-          </button>
-          <button style={styles.closeBtn} onClick={onClose}>
-            ✕ Close
-          </button>
+          <div style={styles.templateSwitcher}>
+            <button
+              style={{
+                ...styles.tabBtn,
+                ...(template === 'a4_modern' ? styles.tabBtnActive : {}),
+              }}
+              onClick={() => setTemplate('a4_modern')}
+            >
+              📄 Modern A4 Invoice
+            </button>
+            <button
+              style={{
+                ...styles.tabBtn,
+                ...(template === 'thermal_80mm' ? styles.tabBtnActive : {}),
+              }}
+              onClick={() => setTemplate('thermal_80mm')}
+            >
+              🧾 80mm Thermal POS
+            </button>
+          </div>
+
+          <div style={styles.rightActions}>
+            <button style={styles.whatsappBtn} onClick={handleWhatsAppShare} title="Share on WhatsApp">
+              💬 Share on WhatsApp
+            </button>
+            <button style={styles.printBtn} onClick={() => window.print()}>
+              🖨️ Print Invoice
+            </button>
+            <button style={styles.closeBtn} onClick={onClose}>
+              ✕ Close
+            </button>
+          </div>
         </div>
 
-        {/* Invoice Printable Sheet */}
-        <div style={styles.invoiceSheet}>
-          <div style={styles.header}>
-            <div>
-              <h1 style={styles.companyName}>
-                {typeof transaction.firmId === 'object' ? transaction.firmId.name : 'Smart Billing Store'}
-              </h1>
-              <div style={styles.subText}>Branch: {typeof transaction.firmId === 'object' ? transaction.firmId.code : 'Main'}</div>
-              <div style={styles.subText}>VAT / PAN: 601234567</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={styles.docTitle}>
-                {transaction.type === 'pos_invoice'
-                  ? 'TAX INVOICE (POS)'
-                  : transaction.type === 'sale_invoice'
-                  ? 'TAX INVOICE'
-                  : 'PURCHASE BILL'}
+        {/* ===================== A4 MODERN TEMPLATE ===================== */}
+        {template === 'a4_modern' ? (
+          <div style={styles.invoiceSheet}>
+            <div style={styles.header}>
+              <div>
+                <h1 style={styles.companyName}>{firmName}</h1>
+                <div style={styles.subText}>Branch: {firmCode} • Head Office Kathmandu</div>
+                <div style={styles.subText}>VAT / PAN: 601234567 • Phone: +977-1-4400000</div>
               </div>
-              <div style={styles.docNumber}>#{transaction.documentNumber}</div>
-              <div style={styles.subText}>Date: {transaction.bsDate} BS ({new Date(transaction.date).toLocaleDateString()})</div>
-              <span
-                style={{
-                  ...styles.statusBadge,
-                  backgroundColor:
-                    transaction.status === 'posted'
-                      ? '#ecfdf5'
-                      : transaction.status === 'cancelled'
-                      ? '#fef2f2'
-                      : '#fffbeb',
-                  color:
-                    transaction.status === 'posted'
-                      ? '#059669'
-                      : transaction.status === 'cancelled'
-                      ? '#dc2626'
-                      : '#d97706',
-                }}
-              >
-                {transaction.status.toUpperCase()}
-              </span>
-            </div>
-          </div>
-
-          <div style={styles.partyBox}>
-            <div>
-              <div style={styles.partyLabel}>Bill To / Party:</div>
-              <div style={styles.partyName}>{transaction.partyName}</div>
-              {transaction.partyPan && <div style={styles.subText}>PAN: {transaction.partyPan}</div>}
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={styles.partyLabel}>Payment Status:</div>
-              <div style={{ fontWeight: 600, color: '#0f172a' }}>
-                Mode: {transaction.paymentMode.toUpperCase()}
+              <div style={{ textAlign: 'right' }}>
+                <div style={styles.docTitle}>
+                  {transaction.type === 'pos_invoice'
+                    ? 'TAX INVOICE (POS)'
+                    : transaction.type === 'sale_invoice'
+                    ? 'TAX INVOICE'
+                    : 'PURCHASE BILL'}
+                </div>
+                <div style={styles.docNumber}>#{transaction.documentNumber}</div>
+                <div style={styles.subText}>Date: {transaction.bsDate} BS ({new Date(transaction.date).toLocaleDateString()})</div>
+                <span
+                  style={{
+                    ...styles.statusBadge,
+                    backgroundColor:
+                      transaction.status === 'posted' ? '#ecfdf5' : transaction.status === 'cancelled' ? '#fef2f2' : '#fffbeb',
+                    color:
+                      transaction.status === 'posted' ? '#059669' : transaction.status === 'cancelled' ? '#dc2626' : '#d97706',
+                  }}
+                >
+                  {transaction.status.toUpperCase()}
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* Line items table */}
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.tableHead}>
-                <th style={{ ...styles.th, width: '40px' }}>#</th>
-                <th style={styles.th}>Particulars (Item Name & Code)</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Qty</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Rate (NPR)</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Taxable (NPR)</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>VAT (13%)</th>
-                <th style={{ ...styles.th, textAlign: 'right' }}>Total (NPR)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transaction.lines.map((line, idx) => (
-                <tr key={idx} style={styles.tableRow}>
-                  <td style={styles.td}>{idx + 1}</td>
-                  <td style={styles.td}>
-                    <strong>{line.itemName}</strong>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>{line.itemCode}</div>
-                  </td>
-                  <td style={{ ...styles.td, textAlign: 'right' }}>{formatDecimal(line.quantity)}</td>
-                  <td style={{ ...styles.td, textAlign: 'right' }}>{formatDecimal(line.rate)}</td>
-                  <td style={{ ...styles.td, textAlign: 'right' }}>{formatDecimal(line.taxableAmount)}</td>
-                  <td style={{ ...styles.td, textAlign: 'right' }}>{formatDecimal(line.taxAmount)}</td>
-                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 600 }}>{formatDecimal(line.lineTotal)}</td>
+            <div style={styles.partiesGrid}>
+              <div style={styles.partyBox}>
+                <div style={styles.boxTitle}>Billed To:</div>
+                <div style={styles.partyName}>{partyName}</div>
+                {partyPan && <div style={styles.subText}>PAN/VAT: {partyPan}</div>}
+                {partyPhone && <div style={styles.subText}>Phone: {partyPhone}</div>}
+              </div>
+              <div style={styles.partyBox}>
+                <div style={styles.boxTitle}>Payment & Delivery:</div>
+                <div style={styles.subText}>Payment Mode: {(transaction.paymentMode || 'cash').toUpperCase()}</div>
+                <div style={styles.subText}>Currency: NPR • Fiscal Year: 2081/82</div>
+                <div style={styles.subText}>Dispatch: Standard Logistics Hub</div>
+              </div>
+            </div>
+
+            {/* Line Items Table */}
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.theadRow}>
+                  <th style={styles.th}>#</th>
+                  <th style={styles.th}>Item Description</th>
+                  <th style={styles.thCenter}>Code</th>
+                  <th style={styles.thRight}>Qty</th>
+                  <th style={styles.thRight}>Rate (NPR)</th>
+                  <th style={styles.thRight}>Discount</th>
+                  <th style={styles.thRight}>VAT (13%)</th>
+                  <th style={styles.thRight}>Amount (NPR)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {transaction.lines.map((line, idx) => (
+                  <tr key={idx} style={styles.tr}>
+                    <td style={styles.td}>{idx + 1}</td>
+                    <td style={styles.td}>
+                      <div style={{ fontWeight: 600 }}>{line.itemName}</div>
+                    </td>
+                    <td style={styles.tdCenter}>{line.itemCode || '-'}</td>
+                    <td style={styles.tdRight}>
+                      {formatDecimal(line.quantity)}
+                    </td>
+                    <td style={styles.tdRight}>{formatDecimal(line.rate)}</td>
+                    <td style={styles.tdRight}>{formatDecimal(line.discountAmount)}</td>
+                    <td style={styles.tdRight}>{formatDecimal(line.taxAmount)}</td>
+                    <td style={styles.tdRightBold}>{formatDecimal(line.lineTotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {/* Totals Summary */}
-          <div style={styles.totalsWrapper}>
-            <div style={{ flex: 1 }}>
-              {transaction.notes && (
-                <div style={styles.notesBox}>
-                  <strong>Notes:</strong> {transaction.notes}
+            {/* Summary & QR Section */}
+            <div style={styles.summarySection}>
+              <div style={styles.qrBlock}>
+                <QrCodeGenerator value={qrPaymentPayload} size={110} label="Fonepay / eSewa Scan to Pay" />
+                <div style={styles.qrDisclaimer}>Scan with any mobile banking or wallet to pay instantly.</div>
+              </div>
+
+              <div style={styles.totalsTable}>
+                <div style={styles.totalRow}>
+                  <span>Subtotal:</span>
+                  <span>NPR {formatDecimal(transaction.subtotal)}</span>
                 </div>
-              )}
-              {transaction.cancellationReason && (
-                <div style={styles.cancelBox}>
-                  <strong>Cancelled:</strong> {transaction.cancellationReason}
+                <div style={styles.totalRow}>
+                  <span>Item Discounts:</span>
+                  <span>- NPR {formatDecimal(transaction.totalDiscount)}</span>
                 </div>
-              )}
+                <div style={styles.totalRow}>
+                  <span>Taxable Amount:</span>
+                  <span>NPR {formatDecimal(transaction.totalTaxableAmount)}</span>
+                </div>
+                <div style={styles.totalRow}>
+                  <span>Nepal VAT (13%):</span>
+                  <span>NPR {formatDecimal(transaction.totalTax)}</span>
+                </div>
+                <div style={styles.grandTotalRow}>
+                  <span>Grand Total:</span>
+                  <span>NPR {formatDecimal(transaction.grandTotal)}</span>
+                </div>
+                <div style={{ ...styles.totalRow, marginTop: '8px', color: '#16a34a' }}>
+                  <span>Amount Paid:</span>
+                  <span>NPR {formatDecimal(transaction.paidAmount)}</span>
+                </div>
+                <div style={{ ...styles.totalRow, color: '#dc2626', fontWeight: 600 }}>
+                  <span>Due Balance:</span>
+                  <span>NPR {formatDecimal(transaction.balanceDue)}</span>
+                </div>
+              </div>
             </div>
 
-            <div style={styles.totalsTable}>
-              <div style={styles.totalRow}>
+            {/* Terms & Footer */}
+            <div style={styles.footerSection}>
+              <div style={styles.termsBox}>
+                <div style={{ fontWeight: 600, marginBottom: '4px' }}>Terms & Conditions:</div>
+                <ol style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: '#64748b' }}>
+                  <li>Goods once sold will not be returned without valid tax receipt.</li>
+                  <li>Interest @ 18% p.a. will be charged on overdue payments beyond 30 days.</li>
+                  <li>Subject to Kathmandu jurisdiction. Nepal IRD Certified Billing.</li>
+                </ol>
+              </div>
+
+              <div style={styles.signatureBox}>
+                <div style={styles.signatureLine}></div>
+                <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Authorized Signatory</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ===================== 80MM THERMAL RECEIPT ===================== */
+          <div style={styles.thermalSheet}>
+            <div style={styles.thermalHeader}>
+              <div style={styles.thermalTitle}>{firmName}</div>
+              <div style={styles.thermalSub}>{firmCode}</div>
+              <div style={styles.thermalSub}>PAN: 601234567 • Ph: +977-1-4400000</div>
+              <div style={styles.thermalDivider}>----------------------------------------</div>
+              <div style={{ fontWeight: 700, fontSize: '13px' }}>TAX INVOICE (CASH/POS)</div>
+              <div style={styles.thermalSub}>Bill No: #{transaction.documentNumber}</div>
+              <div style={styles.thermalSub}>Date: {transaction.bsDate} BS ({new Date(transaction.date).toLocaleDateString()})</div>
+              <div style={styles.thermalSub}>Customer: {partyName}</div>
+              <div style={styles.thermalDivider}>----------------------------------------</div>
+            </div>
+
+            <table style={styles.thermalTable}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Item</th>
+                  <th style={{ textAlign: 'right' }}>Qty</th>
+                  <th style={{ textAlign: 'right' }}>Rate</th>
+                  <th style={{ textAlign: 'right' }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transaction.lines.map((line, idx) => (
+                  <tr key={idx}>
+                    <td style={{ textAlign: 'left', padding: '2px 0' }}>{line.itemName}</td>
+                    <td style={{ textAlign: 'right' }}>{formatDecimal(line.quantity)}</td>
+                    <td style={{ textAlign: 'right' }}>{formatDecimal(line.rate)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatDecimal(line.lineTotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={styles.thermalDivider}>----------------------------------------</div>
+
+            <div style={styles.thermalSummary}>
+              <div style={styles.thermalRow}>
                 <span>Subtotal:</span>
-                <span>NPR {formatDecimal(transaction.subtotal)}</span>
+                <span>{formatDecimal(transaction.subtotal)}</span>
               </div>
-              <div style={styles.totalRow}>
-                <span>Total Discount:</span>
-                <span>- NPR {formatDecimal(transaction.totalDiscount)}</span>
+              <div style={styles.thermalRow}>
+                <span>Discount:</span>
+                <span>-{formatDecimal(transaction.totalDiscount)}</span>
               </div>
-              <div style={styles.totalRow}>
-                <span>Taxable Amount:</span>
-                <span>NPR {formatDecimal(transaction.totalTaxableAmount)}</span>
+              <div style={styles.thermalRow}>
+                <span>VAT (13%):</span>
+                <span>{formatDecimal(transaction.totalTax)}</span>
               </div>
-              <div style={styles.totalRow}>
-                <span>Total VAT (13%):</span>
-                <span>NPR {formatDecimal(transaction.totalTax)}</span>
-              </div>
-              <div style={{ ...styles.totalRow, ...styles.grandTotalRow }}>
-                <span>Grand Total:</span>
+              <div style={{ ...styles.thermalRow, fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
+                <span>GRAND TOTAL:</span>
                 <span>NPR {formatDecimal(transaction.grandTotal)}</span>
               </div>
-              <div style={styles.totalRow}>
-                <span>Paid Amount:</span>
-                <span style={{ color: '#059669' }}>NPR {formatDecimal(transaction.paidAmount)}</span>
+              <div style={styles.thermalRow}>
+                <span>Paid:</span>
+                <span>NPR {formatDecimal(transaction.paidAmount)}</span>
               </div>
-              <div style={styles.totalRow}>
-                <span>Balance Due:</span>
-                <span style={{ color: '#dc2626', fontWeight: 700 }}>NPR {formatDecimal(transaction.balanceDue)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Amount in words & IRD Verification Section */}
-          <div style={styles.complianceBox}>
-            <div>
-              <div style={styles.inWordsLabel}>In Words (अक्षरेपी):</div>
-              <div style={styles.inWordsText}>
-                Rupees {formatDecimal(transaction.grandTotal)} Only.
-              </div>
-              <div style={styles.statutoryNotice}>
-                यस बिजकमा उल्लेखित विवरणहरू सहि तथा साँचो हुन् । (The details in this invoice are true and correct.)
+              <div style={styles.thermalRow}>
+                <span>Change/Due:</span>
+                <span>NPR {formatDecimal(transaction.balanceDue)}</span>
               </div>
             </div>
 
-            {/* IRD Compliant Fiscal QR Code Block */}
-            <div style={styles.qrContainer}>
-              <div style={styles.qrBox}>
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.5">
-                  <path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3z" />
-                  <path d="M7 7h.01M17 7h.01M7 17h.01M14 14h3v3h-3zM14 20h3v1h-3zM20 14h1v3h-1zM20 20h1v1h-1z" strokeWidth="2" />
-                </svg>
-              </div>
-              <div style={{ fontSize: '9px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                IRD Electronic Billing
-                <br />
-                Fiscal QR Verified
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
+              <QrCodeGenerator value={qrPaymentPayload} size={100} label="Scan to Pay via Fonepay" />
+            </div>
+
+            <div style={styles.thermalFooter}>
+              <div>*** Thank You! Visit Again ***</div>
+              <div>Bikram Sambat 2081/82 • IRD Compliant</div>
             </div>
           </div>
-
-          <div style={styles.footerNotice}>
-            Thank you for your business! This is a system-generated Nepal IRD compliant VAT invoice.
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -201,47 +295,94 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 200,
-    padding: '20px',
+    zIndex: 100,
+    padding: '16px',
+    overflowY: 'auto',
   },
   modal: {
     backgroundColor: '#ffffff',
-    borderRadius: '10px',
-    maxWidth: '850px',
+    borderRadius: '12px',
     width: '100%',
-    maxHeight: '90vh',
+    maxWidth: '850px',
+    maxHeight: '92vh',
     overflowY: 'auto',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   },
   actionsBar: {
     display: 'flex',
     justifyContent: 'space-between',
-    padding: '12px 24px',
+    alignItems: 'center',
+    padding: '12px 20px',
     backgroundColor: '#f8fafc',
     borderBottom: '1px solid #e2e8f0',
+    position: 'sticky',
+    top: 0,
+    zIndex: 2,
   },
-  printBtn: {
-    padding: '6px 14px',
-    backgroundColor: '#1e3a8a',
+  templateSwitcher: {
+    display: 'flex',
+    gap: '6px',
+    backgroundColor: '#e2e8f0',
+    padding: '3px',
+    borderRadius: '8px',
+  },
+  tabBtn: {
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#64748b',
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  tabBtnActive: {
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  },
+  rightActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  whatsappBtn: {
+    padding: '8px 14px',
+    backgroundColor: '#25D366',
     color: '#ffffff',
+    border: 'none',
     borderRadius: '6px',
     fontSize: '13px',
     fontWeight: 600,
+    cursor: 'pointer',
   },
-  closeBtn: {
-    padding: '6px 14px',
-    backgroundColor: '#ffffff',
-    color: '#475569',
+  printBtn: {
+    padding: '8px 14px',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    border: 'none',
     borderRadius: '6px',
     fontSize: '13px',
-    border: '1px solid #cbd5e1',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  closeBtn: {
+    padding: '8px 14px',
+    backgroundColor: '#e2e8f0',
+    color: '#475569',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   invoiceSheet: {
     padding: '36px',
+    backgroundColor: '#ffffff',
   },
   header: {
     display: 'flex',
@@ -252,83 +393,132 @@ const styles: Record<string, React.CSSProperties> = {
   },
   companyName: {
     fontSize: '22px',
-    fontWeight: 800,
-    color: '#0f172a',
-    margin: 0,
-  },
-  docTitle: {
-    fontSize: '18px',
-    fontWeight: 800,
-    color: '#1e3a8a',
-  },
-  docNumber: {
-    fontSize: '14px',
     fontWeight: 700,
-    color: '#475569',
-    marginTop: '2px',
+    color: '#0f172a',
+    margin: '0 0 6px 0',
   },
   subText: {
     fontSize: '12px',
     color: '#64748b',
-    marginTop: '3px',
+    marginTop: '2px',
   },
-  statusBadge: {
-    display: 'inline-block',
-    fontSize: '11px',
-    fontWeight: 700,
-    padding: '2px 8px',
-    borderRadius: '4px',
-    marginTop: '6px',
+  docTitle: {
+    fontSize: '20px',
+    fontWeight: 800,
+    color: '#2563eb',
+    letterSpacing: '0.05em',
   },
-  partyBox: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8fafc',
-    padding: '16px',
-    borderRadius: '6px',
-    marginBottom: '24px',
-    border: '1px solid #e2e8f0',
-  },
-  partyLabel: {
-    fontSize: '11px',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    color: '#64748b',
-  },
-  partyName: {
+  docNumber: {
     fontSize: '15px',
     fontWeight: 700,
     color: '#0f172a',
-    marginTop: '2px',
+    marginTop: '4px',
+  },
+  statusBadge: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: 700,
+    marginTop: '6px',
+  },
+  partiesGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '24px',
+    marginBottom: '24px',
+  },
+  partyBox: {
+    backgroundColor: '#f8fafc',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+  },
+  boxTitle: {
+    fontSize: '11px',
+    fontWeight: 700,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: '6px',
+  },
+  partyName: {
+    fontSize: '14px',
+    fontWeight: 700,
+    color: '#0f172a',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginBottom: '24px',
   },
-  tableHead: {
-    backgroundColor: '#f1f5f9',
-    borderBottom: '1px solid #cbd5e1',
+  theadRow: {
+    backgroundColor: '#0f172a',
+    color: '#ffffff',
   },
   th: {
     padding: '10px 12px',
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#334155',
-    textTransform: 'uppercase',
+    fontSize: '12px',
+    fontWeight: 600,
+    textAlign: 'left',
   },
-  tableRow: {
-    borderBottom: '1px solid #f1f5f9',
+  thCenter: {
+    padding: '10px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    textAlign: 'center',
+  },
+  thRight: {
+    padding: '10px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    textAlign: 'right',
+  },
+  tr: {
+    borderBottom: '1px solid #e2e8f0',
   },
   td: {
     padding: '10px 12px',
     fontSize: '13px',
-    color: '#1e293b',
+    color: '#334155',
   },
-  totalsWrapper: {
+  tdCenter: {
+    padding: '10px 12px',
+    fontSize: '13px',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  tdRight: {
+    padding: '10px 12px',
+    fontSize: '13px',
+    color: '#334155',
+    textAlign: 'right',
+  },
+  tdRightBold: {
+    padding: '10px 12px',
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#0f172a',
+    textAlign: 'right',
+  },
+  summarySection: {
     display: 'flex',
-    gap: '32px',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: '32px',
+    padding: '16px 0',
+    borderTop: '1px solid #e2e8f0',
+  },
+  qrBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  qrDisclaimer: {
+    fontSize: '10px',
+    color: '#64748b',
+    textAlign: 'center',
+    maxWidth: '140px',
   },
   totalsTable: {
     width: '320px',
@@ -340,9 +530,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: '13px',
-    color: '#334155',
+    color: '#475569',
   },
   grandTotalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
     fontSize: '16px',
     fontWeight: 800,
     color: '#0f172a',
@@ -351,70 +543,71 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 0',
     marginTop: '4px',
   },
-  notesBox: {
-    fontSize: '12px',
-    color: '#475569',
-    backgroundColor: '#f8fafc',
-    padding: '12px',
-    borderRadius: '6px',
-    border: '1px solid #e2e8f0',
-  },
-  cancelBox: {
-    fontSize: '12px',
-    color: '#dc2626',
-    backgroundColor: '#fef2f2',
-    padding: '12px',
-    borderRadius: '6px',
-    border: '1px solid #fee2e2',
-    marginTop: '8px',
-  },
-  complianceBox: {
+  footerSection: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '14px 16px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '8px',
-    border: '1px dashed #cbd5e1',
-    marginBottom: '20px',
+    alignItems: 'flex-end',
+    borderTop: '1px solid #e2e8f0',
+    paddingTop: '24px',
   },
-  inWordsLabel: {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: '#475569',
-    textTransform: 'uppercase',
+  termsBox: {
+    maxWidth: '450px',
   },
-  inWordsText: {
-    fontSize: '13px',
-    fontWeight: 700,
-    color: '#0f172a',
-    marginTop: '2px',
-  },
-  statutoryNotice: {
-    fontSize: '10px',
-    color: '#64748b',
-    marginTop: '6px',
-    fontStyle: 'italic',
-  },
-  qrContainer: {
+  signatureBox: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    gap: '8px',
   },
-  qrBox: {
-    padding: '6px',
+  signatureLine: {
+    width: '180px',
+    borderBottom: '1px dashed #94a3b8',
+  },
+  // Thermal 80mm styles
+  thermalSheet: {
+    width: '320px',
+    margin: '20px auto',
+    padding: '16px',
     backgroundColor: '#ffffff',
     border: '1px solid #cbd5e1',
-    borderRadius: '6px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    fontFamily: 'monospace',
+    fontSize: '12px',
   },
-  footerNotice: {
+  thermalHeader: {
     textAlign: 'center',
+    marginBottom: '8px',
+  },
+  thermalTitle: {
+    fontSize: '15px',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  thermalSub: {
     fontSize: '11px',
-    color: '#94a3b8',
-    borderTop: '1px solid #f1f5f9',
-    paddingTop: '16px',
+  },
+  thermalDivider: {
+    letterSpacing: '-1px',
+    margin: '4px 0',
+  },
+  thermalTable: {
+    width: '100%',
+    fontSize: '11px',
+  },
+  thermalSummary: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
+    fontSize: '12px',
+  },
+  thermalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+  },
+  thermalFooter: {
+    textAlign: 'center',
+    fontSize: '10px',
+    marginTop: '12px',
+    color: '#475569',
   },
 };

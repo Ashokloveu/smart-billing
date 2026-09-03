@@ -6,6 +6,8 @@ import { formatDecimal } from '../../utils/decimal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 
+import { BarcodeGeneratorModal } from './BarcodeGeneratorModal';
+
 export const ItemsPage: React.FC = () => {
   const currentOrg = useOrgStore((state) => state.currentOrg);
   const [items, setItems] = useState<Item[]>([]);
@@ -19,6 +21,7 @@ export const ItemsPage: React.FC = () => {
   const [totalRecords, setTotalRecords] = useState(0);
 
   const [showModal, setShowModal] = useState(false);
+  const [selectedItemForBarcode, setSelectedItemForBarcode] = useState<any | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -113,6 +116,27 @@ export const ItemsPage: React.FC = () => {
     {
       header: 'Cost Price',
       accessor: (i: Item) => `NPR ${formatDecimal(i.purchasePrice)}`,
+    },
+    {
+      header: 'Actions',
+      accessor: (i: Item) => (
+        <button
+          onClick={() => setSelectedItemForBarcode({ ...i, sellingPrice: i.salePrice })}
+          style={{
+            padding: '5px 10px',
+            fontSize: '11px',
+            fontWeight: 600,
+            backgroundColor: '#f1f5f9',
+            color: '#1e3a8a',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            cursor: 'pointer',
+          }}
+          title="Generate Barcode & Price Tag Stickers"
+        >
+          🏷️ Barcode Tag
+        </button>
+      ),
     },
   ];
 
@@ -260,6 +284,11 @@ export const ItemsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <BarcodeGeneratorModal
+        item={selectedItemForBarcode}
+        onClose={() => setSelectedItemForBarcode(null)}
+      />
     </div>
   );
 };

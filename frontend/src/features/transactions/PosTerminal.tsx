@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOrgStore } from '../../stores/orgStore';
 import { apiClient } from '../../services/apiClient';
 import { Item } from '../../types/master';
-import { Warehouse } from '../../types/inventory';
 import { formatDecimal } from '../../utils/decimal';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
 import { Transaction } from '../../types/transaction';
@@ -14,10 +14,11 @@ interface CartItem {
 }
 
 export const PosTerminal: React.FC = () => {
+  const navigate = useNavigate();
   const currentOrg = useOrgStore((state) => state.currentOrg);
   const [items, setItems] = useState<Item[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [fiscalYearId, setFiscalYearId] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Selected contexts
   const [firmId, setFirmId] = useState('');
@@ -72,7 +73,6 @@ export const PosTerminal: React.FC = () => {
           apiClient.get(`/organizations/${currentOrg._id}/fiscal-years`),
         ]);
         setItems(iRes.data.data || []);
-        setWarehouses(wRes.data.data || []);
 
         if (fRes.data?.data?.length > 0) setFirmId(fRes.data.data[0]._id);
         if (wRes.data?.data?.length > 0) setWarehouseId(wRes.data.data[0]._id);
@@ -170,55 +170,85 @@ export const PosTerminal: React.FC = () => {
     <div style={styles.container}>
       {/* Left: Product Catalog & Barcode Bar */}
       <div style={styles.catalogSection}>
-        {/* Search & Warehouse Context Bar */}
-        <div style={styles.catalogHeader}>
-          <div style={styles.searchWrapper}>
-            <span style={styles.barcodeIcon}>🏷️</span>
+        {/* Karobar Quick POS Header */}
+        <div style={styles.quickPosTopBar}>
+          <h2 style={styles.quickPosTitle}>Quick POS</h2>
+          <div style={styles.quickPosSearch}>
+            <span style={{ fontSize: '14px', color: '#94a3b8' }}>🔍</span>
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Scan barcode or type SKU / item name (Auto-focus active)..."
+              placeholder="Search items..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchBar}
+              style={styles.quickPosSearchInput}
             />
           </div>
-          <select
-            value={warehouseId}
-            onChange={(e) => setWarehouseId(e.target.value)}
-            style={styles.whSelect}
-          >
-            {warehouses.map((w) => (
-              <option key={w._id} value={w._id}>
-                🏬 {w.name}
-              </option>
-            ))}
-          </select>
+          <button style={styles.quickPosAddBtn} onClick={() => navigate('/items')}>
+            + Add New Item
+          </button>
         </div>
 
-        {/* Product Cards Grid */}
-        <div style={styles.itemGrid}>
-          {filteredItems.map((item) => (
-            <div
-              key={item._id}
-              style={styles.itemCard}
-              onClick={() => addToCart(item)}
-              title="Click to add to bill"
+        {/* Category Pills */}
+        <div style={styles.categoryPillsBar}>
+          {[
+            { id: 'all', label: 'All Categories' },
+            { id: 'general', label: 'General' },
+            { id: 'grocery', label: 'Grocery' },
+            { id: 'beverages', label: 'Beverages' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              style={{
+                ...styles.categoryPill,
+                ...(selectedCategory === cat.id ? styles.categoryPillActive : {}),
+              }}
+              onClick={() => setSelectedCategory(cat.id)}
             >
-              <div style={styles.itemCardTop}>
-                <span style={styles.itemCode}>{item.code}</span>
-                <span style={styles.itemUnit}>
-                  {typeof item.primaryUnitId === 'object' ? item.primaryUnitId.abbreviation : 'PCS'}
-                </span>
-              </div>
-              <h4 style={styles.itemName}>{item.name}</h4>
-              <div style={styles.itemCardBottom}>
-                <div style={styles.itemPrice}>NPR {formatDecimal(item.salePrice)}</div>
-                <button style={styles.addPillBtn}>+ Add</button>
-              </div>
-            </div>
+              {cat.label}
+            </button>
           ))}
         </div>
+
+        {/* Product Cards Grid / Empty State */}
+        {filteredItems.length > 0 ? (
+          <div style={styles.itemGrid}>
+            {filteredItems.map((item) => (
+              <div
+                key={item._id}
+                style={styles.itemCard}
+                onClick={() => addToCart(item)}
+                title="Click to add to bill"
+              >
+                <div style={styles.itemCardTop}>
+                  <span style={styles.itemCode}>{item.code}</span>
+                  <span style={styles.itemUnit}>
+                    {typeof item.primaryUnitId === 'object' ? item.primaryUnitId.abbreviation : 'PCS'}
+                  </span>
+                </div>
+                <h4 style={styles.itemName}>{item.name}</h4>
+                <div style={styles.itemCardBottom}>
+                  <div style={styles.itemPrice}>NPR {formatDecimal(item.salePrice)}</div>
+                  <button style={styles.addPillBtn}>+ Add</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Karobar Clean Empty State (Screenshot 2) */
+          <div style={styles.emptyCatalogContainer}>
+            <div style={styles.emptyIllustrationBox}>
+              <span style={{ fontSize: '56px', opacity: 0.7 }}>📁</span>
+            </div>
+            <h3 style={styles.emptyTitle}>No Items Found</h3>
+            <p style={styles.emptySubtitle}>
+              You can add a new item & select it for billing
+            </p>
+            <button style={styles.emptyAddBtn} onClick={() => navigate('/items')}>
+              + Add New Item
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right: Counter Cart, Multi-Cart Parking & Checkout */}
@@ -286,10 +316,10 @@ export const PosTerminal: React.FC = () => {
           ))}
           {cart.length === 0 && (
             <div style={styles.emptyCart}>
-              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🛒</div>
-              <div style={{ fontWeight: 600, color: '#475569' }}>Current Cart is Empty</div>
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                Tap items or scan barcode to begin billing.
+              <div style={{ fontSize: '48px', opacity: 0.6, marginBottom: '12px' }}>📄</div>
+              <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e293b' }}>No Billing Items</div>
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                Select items to record a sale
               </div>
             </div>
           )}
@@ -408,6 +438,114 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #e2e8f0',
     padding: '18px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  },
+  quickPosTopBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    marginBottom: '14px',
+  },
+  quickPosTitle: {
+    fontSize: '20px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: 0,
+  },
+  quickPosSearch: {
+    flex: 1,
+    maxWidth: '420px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    padding: '0 12px',
+  },
+  quickPosSearchInput: {
+    flex: 1,
+    padding: '8px 0',
+    border: 'none',
+    outline: 'none',
+    fontSize: '13px',
+    color: '#0f172a',
+  },
+  quickPosAddBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  categoryPillsBar: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+    overflowX: 'auto',
+    paddingBottom: '4px',
+  },
+  categoryPill: {
+    padding: '6px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#f8fafc',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#64748b',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  categoryPillActive: {
+    backgroundColor: '#10b981',
+    color: '#ffffff',
+    borderColor: '#10b981',
+    fontWeight: 700,
+  },
+  emptyCatalogContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    padding: '40px',
+  },
+  emptyIllustrationBox: {
+    width: '100px',
+    height: '100px',
+    borderRadius: '24px',
+    backgroundColor: '#f8fafc',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '16px',
+  },
+  emptyTitle: {
+    fontSize: '18px',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: '0 0 6px 0',
+  },
+  emptySubtitle: {
+    fontSize: '13px',
+    color: '#64748b',
+    margin: '0 0 16px 0',
+  },
+  emptyAddBtn: {
+    padding: '8px 18px',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
   },
   catalogHeader: {
     display: 'flex',

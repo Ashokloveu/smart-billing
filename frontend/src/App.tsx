@@ -10,6 +10,7 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { InventoryDashboard } from './features/inventory/InventoryDashboard';
 import { TransactionManager } from './features/transactions/TransactionManager';
 import { PosTerminal } from './features/transactions/PosTerminal';
+import { PaymentInPage } from './features/transactions/PaymentInPage';
 import { ReportsDashboard } from './features/reports/pages/ReportsDashboard';
 import { AccountingDashboard } from './features/accounting/pages/AccountingDashboard';
 import { VatRegisterPage } from './features/compliance/pages/VatRegisterPage';
@@ -26,6 +27,11 @@ import { QuotationListPage } from './features/crm/pages/QuotationListPage';
 import { Customer360ViewPage } from './features/crm/pages/Customer360ViewPage';
 import { SalesTargetsPage } from './features/crm/pages/SalesTargetsPage';
 import { CustomerPortalPage } from './features/crm/pages/CustomerPortalPage';
+import { ManageAccountsPage } from './features/accounting/pages/ManageAccountsPage';
+import { ManageStaffsPage } from './features/hr/pages/ManageStaffsPage';
+import { BusinessCardPage } from './features/tools/BusinessCardPage';
+import { BarcodeGeneratorPage } from './features/tools/BarcodeGeneratorPage';
+import { ImportDataPage } from './features/tools/ImportDataPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
 
@@ -54,8 +60,13 @@ export const App: React.FC = () => {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/online-store" element={<OnlineStorePage />} />
               <Route path="/sales" element={<TransactionManager moduleType="sales" />} />
+              <Route path="/sales/payment-in" element={<PaymentInPage />} />
+              <Route path="/sales/quotations" element={<QuotationListPage />} />
+              <Route path="/sales/return" element={<TransactionManager moduleType="sales" />} />
               <Route path="/pos" element={<PosTerminal />} />
               <Route path="/purchases" element={<TransactionManager moduleType="purchases" />} />
+              <Route path="/purchases/payment-out" element={<TransactionManager moduleType="purchases" />} />
+              <Route path="/purchases/return" element={<TransactionManager moduleType="purchases" />} />
               <Route path="/parties" element={<PartiesPage />} />
               <Route path="/items" element={<ItemsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
@@ -75,6 +86,12 @@ export const App: React.FC = () => {
               <Route path="/crm/quotations" element={<QuotationListPage />} />
               <Route path="/crm/customer-360" element={<Customer360ViewPage />} />
               <Route path="/crm/targets" element={<SalesTargetsPage />} />
+              <Route path="/manage-accounts" element={<ManageAccountsPage />} />
+              <Route path="/manage-staffs" element={<ManageStaffsPage />} />
+              <Route path="/tools/business-cards" element={<BusinessCardPage />} />
+              <Route path="/tools/barcode-generator" element={<BarcodeGeneratorPage />} />
+              <Route path="/import/items" element={<ImportDataPage type="items" />} />
+              <Route path="/import/parties" element={<ImportDataPage type="parties" />} />
               <Route path="/portal" element={<CustomerPortalPage />} />
             </Route>
           </Route>

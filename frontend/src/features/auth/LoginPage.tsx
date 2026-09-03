@@ -96,7 +96,7 @@ export const LoginPage: React.FC = () => {
           <div style={styles.brandRow}>
             <div style={styles.logoBadge}>⚡</div>
             <div>
-              <div style={styles.brandName}>Smart Billing ERP</div>
+              <div style={styles.brandName}>Smart Billing</div>
               <div style={styles.brandTagline}>Enterprise SaaS • Nepal IRD Certified</div>
             </div>
           </div>

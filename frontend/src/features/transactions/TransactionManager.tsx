@@ -8,6 +8,7 @@ import { formatDecimal } from '../../utils/decimal';
 import { DataTable } from '../../components/common/DataTable';
 import { Pagination } from '../../components/common/Pagination';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
+import { KarobarEmptyState } from '../../components/common/KarobarEmptyState';
 
 interface TransactionManagerProps {
   moduleType: 'sales' | 'purchases';
@@ -52,6 +53,14 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({ moduleTy
   const [lines, setLines] = useState<Array<{ itemId: string; quantity: string; rate: string; discountAmount: string; taxRate: string }>>([
     { itemId: '', quantity: '1', rate: '0.00', discountAmount: '0.00', taxRate: '13.00' },
   ]);
+
+  const subtotal = lines.reduce((acc, l) => {
+    const q = Number(l.quantity) || 0;
+    const r = Number(l.rate) || 0;
+    const d = Number(l.discountAmount) || 0;
+    return acc + Math.max(0, q * r - d);
+  }, 0);
+  const grandTotal = subtotal;
 
   const fetchDependencies = async () => {
     if (!currentOrg?._id) return;
@@ -340,8 +349,23 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({ moduleTy
         </select>
       </div>
 
-      <DataTable columns={columns} data={transactions} isLoading={loading} />
-      <Pagination page={page} totalPages={totalPages} totalRecords={totalRecords} onPageChange={(p) => setPage(p)} />
+      {transactions.length === 0 && !loading ? (
+        <KarobarEmptyState
+          title={moduleType === 'sales' ? 'Create Your First Sales Invoice' : 'Create Your First Purchase Bill'}
+          subtitle={
+            moduleType === 'sales'
+              ? 'Click on the create sales invoice button and start managing your sales invoices.'
+              : 'Click on the create purchase bill button and start managing your purchases.'
+          }
+          buttonText={moduleType === 'sales' ? 'Create Sales Invoice' : 'Create Purchase Bill'}
+          onButtonClick={() => setShowCreateModal(true)}
+        />
+      ) : (
+        <>
+          <DataTable columns={columns} data={transactions} isLoading={loading} />
+          <Pagination page={page} totalPages={totalPages} totalRecords={totalRecords} onPageChange={(p) => setPage(p)} />
+        </>
+      )}
 
       {/* Invoice Preview Modal */}
       {selectedTxn && <InvoicePreviewModal transaction={selectedTxn} onClose={() => setSelectedTxn(null)} />}
@@ -384,15 +408,42 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({ moduleTy
       {/* Create Transaction Modal */}
       {showCreateModal && (
         <div style={styles.overlay}>
-          <div style={styles.modalLarge}>
-            <div style={styles.modalHeader}>
-              <h2>New {moduleType === 'sales' ? 'Sales Invoice' : 'Purchase Bill'}</h2>
-              <button onClick={() => setShowCreateModal(false)} style={styles.closeBtn}>
-                ✕
-              </button>
+          <div style={styles.karobarModalLarge}>
+            {/* Karobar Document Header */}
+            <div style={styles.karobarDocHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={styles.backBtn}
+                >
+                  ←
+                </button>
+                <h2 style={styles.karobarDocTitle}>
+                  {moduleType === 'sales'
+                    ? txnType === 'sales_return'
+                      ? 'Create Sales Return'
+                      : 'Create Sales Invoice'
+                    : txnType === 'purchase_return'
+                    ? 'Create Purchase Return'
+                    : 'Create Purchase Bill'}
+                </h2>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button type="button" style={styles.gearBtn} title="Document Settings">
+                  ⚙️
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={styles.closeBtn}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleCreate} style={styles.createForm}>
+            <form onSubmit={handleCreate} style={{ padding: '24px' }}>
               <div style={styles.formGrid}>
                 <div>
                   <label style={styles.label}>Transaction Type</label>
@@ -467,100 +518,184 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({ moduleTy
                 </div>
               </div>
 
-              {/* Line Items Builder */}
+              {/* Line Items Table (Karobar Style) */}
               <div style={{ marginTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 700 }}>Line Items</h3>
-                  <button type="button" onClick={addLine} style={styles.lineAddBtn}>
-                    + Add Row
-                  </button>
-                </div>
+                <table style={styles.karobarItemTable}>
+                  <thead>
+                    <tr style={styles.karobarTableHead}>
+                      <th style={{ width: '40px', padding: '10px 8px', textAlign: 'center' }}>S.N.</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left' }}>Name</th>
+                      <th style={{ width: '90px', padding: '10px 8px', textAlign: 'center' }}>Quantity</th>
+                      <th style={{ width: '110px', padding: '10px 8px', textAlign: 'right' }}>Rate</th>
+                      <th style={{ width: '130px', padding: '10px 8px', textAlign: 'center' }}>Discount</th>
+                      <th style={{ width: '110px', padding: '10px 8px', textAlign: 'right' }}>Amount</th>
+                      <th style={{ width: '40px', padding: '10px 8px', textAlign: 'center' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, idx) => {
+                      const qty = Number(line.quantity) || 0;
+                      const r = Number(line.rate) || 0;
+                      const disc = Number(line.discountAmount) || 0;
+                      const lineTotal = Math.max(0, qty * r - disc);
+                      return (
+                        <tr key={idx} style={styles.karobarTableRow}>
+                          <td style={{ textAlign: 'center', color: '#64748b', fontSize: '13px' }}>{idx + 1}</td>
+                          <td style={{ padding: '8px' }}>
+                            <select
+                              value={line.itemId}
+                              onChange={(e) => handleLineChange(idx, 'itemId', e.target.value)}
+                              style={styles.karobarInput}
+                            >
+                              <option value="">Select item name</option>
+                              {items.map((i) => (
+                                <option key={i._id} value={i._id}>
+                                  {i.name} ({i.code})
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={line.quantity}
+                              onChange={(e) => handleLineChange(idx, 'quantity', e.target.value)}
+                              style={{ ...styles.karobarInput, textAlign: 'center' }}
+                            />
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="Rs."
+                              value={line.rate}
+                              onChange={(e) => handleLineChange(idx, 'rate', e.target.value)}
+                              style={{ ...styles.karobarInput, textAlign: 'right' }}
+                            />
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Rs."
+                                value={line.discountAmount}
+                                onChange={(e) => handleLineChange(idx, 'discountAmount', e.target.value)}
+                                style={{ ...styles.karobarInput, textAlign: 'right' }}
+                              />
+                            </div>
+                          </td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                            Rs. {formatDecimal(lineTotal)}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => removeLine(idx)}
+                              style={styles.lineTrashBtn}
+                              title="Delete Row"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {lines.map((line, idx) => (
-                    <div key={idx} style={styles.lineRow}>
-                      <select
-                        value={line.itemId}
-                        onChange={(e) => handleLineChange(idx, 'itemId', e.target.value)}
-                        style={{ ...styles.input, flex: 3 }}
-                      >
-                        {items.map((i) => (
-                          <option key={i._id} value={i._id}>
-                            {i.name} ({i.code})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Qty"
-                        value={line.quantity}
-                        onChange={(e) => handleLineChange(idx, 'quantity', e.target.value)}
-                        style={{ ...styles.input, flex: 1 }}
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Rate"
-                        value={line.rate}
-                        onChange={(e) => handleLineChange(idx, 'rate', e.target.value)}
-                        style={{ ...styles.input, flex: 1 }}
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="Discount"
-                        value={line.discountAmount}
-                        onChange={(e) => handleLineChange(idx, 'discountAmount', e.target.value)}
-                        style={{ ...styles.input, flex: 1 }}
-                      />
-                      <button type="button" onClick={() => removeLine(idx)} style={styles.lineRemoveBtn}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Settlement summary */}
-              <div style={{ display: 'flex', gap: '16px', marginTop: '20px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.label}>Payment Settlement Mode</label>
-                  <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as any)} style={styles.input}>
-                    <option value="credit">On Credit (Accounts Receivable)</option>
-                    <option value="cash">Full Cash Settlement</option>
-                    <option value="bank">Bank / QR Payment</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={styles.label}>Immediate Paid Amount (NPR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    style={styles.input}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginTop: '16px' }}>
-                <label style={styles.label}>Transaction Notes / Remarks</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Delivered via Transport #TR-402, paid partially by cash"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.formActions}>
-                <button type="button" onClick={() => setShowCreateModal(false)} style={styles.btnSecondary}>
-                  Cancel
+                {/* + Add Billing Item Link Button */}
+                <button
+                  type="button"
+                  onClick={addLine}
+                  style={styles.addBillingItemBtn}
+                >
+                  <span style={{ fontSize: '15px', fontWeight: 800 }}>+</span> Add Billing Item
                 </button>
-                <button type="submit" style={styles.btnPrimary}>
-                  Post & Update Stock
+              </div>
+
+              {/* Subtotal & Bottom Split Grid */}
+              <div style={styles.docBottomGrid}>
+                {/* Left: Notes & Image Attach */}
+                <div style={styles.docNotesCol}>
+                  <label style={styles.label}>Notes or Remarks</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Enter note or description..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    style={styles.notesTextarea}
+                  />
+
+                  <div style={{ marginTop: '12px' }}>
+                    <label style={styles.label}>Attach Images</label>
+                    <button type="button" style={styles.attachCameraBtn} title="Attach Document Image">
+                      📷
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right: Totals & Payment Mode */}
+                <div style={styles.docTotalsCol}>
+                  <div style={styles.totalRow}>
+                    <span style={{ color: '#64748b', fontSize: '13px' }}>Sub Total</span>
+                    <strong style={{ fontSize: '14px', color: '#0f172a' }}>
+                      Rs. {formatDecimal(subtotal)}
+                    </strong>
+                  </div>
+
+                  <div style={{ ...styles.totalRow, marginTop: '8px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>Total Amount</span>
+                    <div style={styles.totalAmountBox}>
+                      <span style={{ fontSize: '12px', color: '#64748b', marginRight: '6px' }}>Rs.</span>
+                      <strong style={{ fontSize: '16px', color: '#0f172a' }}>{formatDecimal(grandTotal)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ ...styles.totalRow, marginTop: '12px' }}>
+                    <span style={{ fontSize: '13px', color: '#475569' }}>Payment Mode</span>
+                    <select
+                      value={paymentMode}
+                      onChange={(e) => {
+                        const m = e.target.value as any;
+                        setPaymentMode(m);
+                        if (m === 'cash' || m === 'bank') {
+                          setPaidAmount(grandTotal.toFixed(2));
+                        }
+                      }}
+                      style={styles.paymentSelect}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bank">Fonepay / Bank QR</option>
+                      <option value="credit">Credit (Udharo)</option>
+                      <option value="partial">Partial Payment</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Actions */}
+              <div style={styles.karobarFormFooter}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={styles.saveAndNewBtn}
+                >
+                  Save & New
+                </button>
+                <button
+                  type="submit"
+                  style={styles.saveSalesInvoiceSplitBtn}
+                >
+                  <span>
+                    {moduleType === 'sales'
+                      ? txnType === 'sales_return'
+                        ? 'Save Sales Return'
+                        : 'Save Sales Invoice'
+                      : 'Save Purchase Bill'}
+                  </span>
+                  <span style={{ opacity: 0.7, paddingLeft: '8px', borderLeft: '1px solid rgba(255,255,255,0.3)' }}>▾</span>
                 </button>
               </div>
             </form>
@@ -585,8 +720,181 @@ const styles: Record<string, React.CSSProperties> = {
   overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' },
   modalSmall: { backgroundColor: '#ffffff', borderRadius: '8px', width: '380px', padding: '24px' },
   modalLarge: { backgroundColor: '#ffffff', borderRadius: '8px', maxWidth: '850px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '28px' },
+  karobarModalLarge: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    maxWidth: '920px',
+    width: '100%',
+    maxHeight: '92vh',
+    overflowY: 'auto',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+  },
+  karobarDocHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 24px',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  backBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#64748b',
+  },
+  karobarDocTitle: {
+    fontSize: '18px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: 0,
+  },
+  gearBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '18px',
+    cursor: 'pointer',
+    color: '#64748b',
+  },
+  karobarItemTable: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    border: '1px solid #e2e8f0',
+  },
+  karobarTableHead: {
+    backgroundColor: '#f8fafc',
+    borderBottom: '1.5px solid #e2e8f0',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#475569',
+  },
+  karobarTableRow: {
+    borderBottom: '1px solid #f1f5f9',
+  },
+  karobarInput: {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  lineTrashBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    opacity: 0.7,
+  },
+  addBillingItemBtn: {
+    marginTop: '12px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: 'none',
+    border: 'none',
+    color: '#10b981',
+    fontWeight: 700,
+    fontSize: '13px',
+    cursor: 'pointer',
+    padding: '6px 0',
+  },
+  docBottomGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1.2fr 1fr',
+    gap: '24px',
+    marginTop: '24px',
+    paddingTop: '20px',
+    borderTop: '1px solid #f1f5f9',
+  },
+  docNotesCol: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  notesTextarea: {
+    padding: '10px 12px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13px',
+    outline: 'none',
+    fontFamily: 'inherit',
+    resize: 'vertical',
+  },
+  attachCameraBtn: {
+    width: '44px',
+    height: '44px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#f8fafc',
+    fontSize: '18px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  docTotalsCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    backgroundColor: '#f8fafc',
+    padding: '16px',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+  },
+  totalRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalAmountBox: {
+    display: 'flex',
+    alignItems: 'baseline',
+  },
+  paymentSelect: {
+    padding: '6px 12px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13px',
+    backgroundColor: '#ffffff',
+    outline: 'none',
+  },
+  karobarFormFooter: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '12px',
+    marginTop: '24px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f1f5f9',
+  },
+  saveAndNewBtn: {
+    padding: '9px 18px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    color: '#0f172a',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  saveSalesInvoiceSplitBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '9px 18px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#10b981',
+    color: '#ffffff',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+  },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  closeBtn: { fontSize: '16px', color: '#64748b' },
+  closeBtn: { fontSize: '16px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' },
   createForm: { display: 'flex', flexDirection: 'column' },
   formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' },
   label: { display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '4px' },

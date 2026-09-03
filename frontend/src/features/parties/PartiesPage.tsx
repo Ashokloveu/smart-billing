@@ -169,82 +169,124 @@ export const PartiesPage: React.FC = () => {
       {/* Create Party Modal */}
       {showModal && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <div style={styles.modalHeader}>
-              <h2>Add New Party</h2>
+          <div style={styles.karobarModal}>
+            {/* Modal Header */}
+            <div style={styles.karobarModalHeader}>
+              <h2 style={styles.karobarModalTitle}>Add New Party</h2>
               <button onClick={() => setShowModal(false)} style={styles.closeBtn}>
                 ✕
               </button>
             </div>
-            <form onSubmit={handleCreate} style={styles.modalForm}>
-              <div style={styles.formRow}>
-                <label>Party Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  style={styles.input}
-                >
-                  <option value="customer">Customer</option>
-                  <option value="supplier">Supplier</option>
-                  <option value="both">Both</option>
-                </select>
+
+            <form onSubmit={handleCreate} style={{ padding: '24px' }}>
+              {/* Top Row: Photo Box + Name/Phone */}
+              <div style={styles.partyTopRow}>
+                {/* Photo Placeholder */}
+                <div style={styles.photoContainer}>
+                  <div style={styles.photoBox}>
+                    <span style={{ fontSize: '44px', color: '#94a3b8' }}>👤</span>
+                  </div>
+                  <button type="button" style={styles.uploadPhotoBtn}>
+                    Upload Photo
+                  </button>
+                </div>
+
+                {/* Form fields */}
+                <div style={styles.partyMainFields}>
+                  <div style={styles.twoColRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Full Name*</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter the name of party"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        style={styles.karobarInput}
+                      />
+                    </div>
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Phone Number</label>
+                      <input
+                        type="text"
+                        placeholder="Enter party phone no"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        style={styles.karobarInput}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Party Type Segmented Switcher */}
+                  <div style={{ marginTop: '12px' }}>
+                    <label style={styles.formLabel}>Party Type</label>
+                    <div style={styles.segmentedRow}>
+                      <button
+                        type="button"
+                        style={{
+                          ...styles.segmentBtn,
+                          ...(formData.type === 'customer' ? styles.segmentBtnActive : {}),
+                        }}
+                        onClick={() => setFormData({ ...formData, type: 'customer' })}
+                      >
+                        Customer
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          ...styles.segmentBtn,
+                          ...(formData.type === 'supplier' ? styles.segmentBtnActive : {}),
+                        }}
+                        onClick={() => setFormData({ ...formData, type: 'supplier' })}
+                      >
+                        Supplier
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div style={styles.formRow}>
-                <label>Legal Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Himalayan Retailers Pvt. Ltd."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={styles.input}
-                />
+              {/* Tabs: Credit Info | Additional Info */}
+              <div style={styles.partyTabs}>
+                <div style={styles.partyTabActive}>Credit Info</div>
+                <div style={styles.partyTabInactive}>Additional Info</div>
               </div>
 
-              <div style={styles.formRow}>
-                <label>Phone Number</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="+977-9841234567"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={styles.input}
-                />
+              {/* Credit Info Row */}
+              <div style={styles.creditInfoRow}>
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>Opening Balance</label>
+                  <input
+                    type="text"
+                    placeholder="Rs. eg. 0"
+                    style={styles.karobarInput}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button type="button" style={styles.toReceiveBtn}>
+                      To Receive
+                    </button>
+                    <button type="button" style={styles.toGiveBtn}>
+                      To Give
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label style={styles.formLabel}>As of Date</label>
+                  <div style={styles.dateInputWrapper}>
+                    <input
+                      type="text"
+                      defaultValue="2083 Bai 15"
+                      style={styles.karobarInput}
+                    />
+                    <span style={styles.calendarIcon}>📅</span>
+                  </div>
+                </div>
               </div>
 
-              <div style={styles.formRow}>
-                <label>9-Digit PAN / VAT</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 601234567"
-                  value={formData.panNumber}
-                  onChange={(e) => setFormData({ ...formData, panNumber: e.target.value })}
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.formRow}>
-                <label>City</label>
-                <input
-                  type="text"
-                  value={formData.billingAddress.city}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      billingAddress: { ...formData.billingAddress, city: e.target.value },
-                    })
-                  }
-                  style={styles.input}
-                />
-              </div>
-
-              <div style={styles.formActions}>
-                <button type="button" onClick={() => setShowModal(false)} style={styles.btnSecondary}>
-                  Cancel
-                </button>
-                <button type="submit" style={styles.btnPrimary}>
+              {/* Bottom Action */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                <button type="submit" style={styles.savePartyGreenBtn}>
                   Save Party
                 </button>
               </div>
@@ -327,8 +369,180 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '24px',
     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
   },
+  karobarModal: {
+    backgroundColor: '#ffffff',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '620px',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+    overflow: 'hidden',
+  },
+  karobarModalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '20px 24px 16px 24px',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  karobarModalTitle: {
+    fontSize: '18px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: 0,
+  },
+  partyTopRow: {
+    display: 'flex',
+    gap: '20px',
+    alignItems: 'flex-start',
+    marginBottom: '20px',
+  },
+  photoContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  photoBox: {
+    width: '84px',
+    height: '84px',
+    borderRadius: '12px',
+    backgroundColor: '#e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadPhotoBtn: {
+    padding: '4px 10px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    backgroundColor: '#ffffff',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#475569',
+    cursor: 'pointer',
+  },
+  partyMainFields: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  twoColRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+  },
+  formGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  formLabel: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#334155',
+  },
+  karobarInput: {
+    width: '100%',
+    padding: '9px 12px',
+    borderRadius: '8px',
+    border: '1px solid #cbd5e1',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  segmentedRow: {
+    display: 'flex',
+    gap: '8px',
+  },
+  segmentBtn: {
+    padding: '6px 16px',
+    borderRadius: '8px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#f8fafc',
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#64748b',
+    cursor: 'pointer',
+  },
+  segmentBtnActive: {
+    borderColor: '#10b981',
+    color: '#059669',
+    backgroundColor: '#ecfdf5',
+    fontWeight: 700,
+  },
+  partyTabs: {
+    display: 'flex',
+    gap: '24px',
+    borderBottom: '1px solid #e2e8f0',
+    paddingBottom: '8px',
+    marginTop: '16px',
+    marginBottom: '16px',
+  },
+  partyTabActive: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: '#10b981',
+    borderBottom: '2px solid #10b981',
+    paddingBottom: '8px',
+    cursor: 'pointer',
+  },
+  partyTabInactive: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#64748b',
+    cursor: 'pointer',
+  },
+  creditInfoRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+  },
+  toReceiveBtn: {
+    flex: 1,
+    padding: '6px 12px',
+    backgroundColor: '#ecfdf5',
+    color: '#059669',
+    border: '1px solid #a7f3d0',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  toGiveBtn: {
+    flex: 1,
+    padding: '6px 12px',
+    backgroundColor: '#f8fafc',
+    color: '#64748b',
+    border: '1px solid #e2e8f0',
+    borderRadius: '6px',
+    fontSize: '11px',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  dateInputWrapper: {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  calendarIcon: {
+    position: 'absolute',
+    right: '12px',
+    fontSize: '14px',
+    pointerEvents: 'none',
+  },
+  savePartyGreenBtn: {
+    padding: '10px 24px',
+    backgroundColor: '#10b981',
+    color: '#ffffff',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 700,
+    border: 'none',
+    cursor: 'pointer',
+    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+  },
   modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-  closeBtn: { fontSize: '16px', color: '#64748b' },
+  closeBtn: { fontSize: '16px', color: '#64748b', border: 'none', backgroundColor: 'transparent', cursor: 'pointer' },
   modalForm: { display: 'flex', flexDirection: 'column', gap: '12px' },
   formRow: { display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', fontWeight: 600 },
   input: { padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' },

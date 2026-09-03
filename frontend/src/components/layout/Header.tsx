@@ -135,19 +135,30 @@ export const Header: React.FC = () => {
             onClick={toggleLang}
             title="Toggle English / नेपाली भाषा"
           >
-            <span style={lang === 'en' ? styles.langActive : styles.langInactive}>🇬🇧 EN</span>
-            <span style={{ color: '#cbd5e1', fontSize: '12px' }}>|</span>
-            <span style={lang === 'np' ? styles.langActive : styles.langInactive}>🇳🇵 नेपाली</span>
+            <span>{lang === 'en' ? '🇺🇸' : '🇳🇵'}</span>
           </div>
 
-          <NotificationDropdown />
-          <div style={styles.userInfo}>
-            <span style={styles.userName}>{user?.fullName || 'Administrator'}</span>
-            <span style={styles.userRole}>Chief Administrator</span>
-          </div>
-          <button onClick={handleLogout} style={styles.logoutBtn} title="Sign Out">
-            {lang === 'np' ? 'बाहिरिनुहोस्' : 'Sign Out'}
+          {/* Quick Shortcuts Icon */}
+          <button style={styles.headerIconButton} title="Keyboard Shortcuts (Ctrl+K)" onClick={() => setIsSearchOpen(true)}>
+            ⌨
           </button>
+
+          {/* Notification Bell */}
+          <NotificationDropdown />
+
+          {/* Dark/Light Mode Icon */}
+          <button style={styles.headerIconButton} title="Theme Switcher">
+            ◐
+          </button>
+
+          {/* User Profile Pill */}
+          <div style={styles.userProfilePill} onClick={handleLogout} title="Click to Sign Out">
+            <div style={styles.userInitialAvatar}>
+              {(user?.fullName || 'Ashok Singh').charAt(0).toUpperCase()}
+            </div>
+            <span style={styles.userDisplayName}>{user?.fullName || 'Ashok Singh'}</span>
+            <span style={{ fontSize: '11px', color: '#64748b' }}>▾</span>
+          </div>
         </div>
       </header>
 
@@ -354,6 +365,44 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 500,
     color: '#64748b',
   },
+  headerIconButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '16px',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userProfilePill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '4px 10px 4px 6px',
+    borderRadius: '20px',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    cursor: 'pointer',
+  },
+  userInitialAvatar: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    backgroundColor: '#10b981',
+    color: '#ffffff',
+    fontSize: '11px',
+    fontWeight: 800,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userDisplayName: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#0f172a',
+  },
   userInfo: {
     display: 'flex',
     flexDirection: 'column',
@@ -369,13 +418,13 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#64748b',
   },
   logoutBtn: {
-    fontSize: '12px',
-    fontWeight: 600,
-    color: '#dc2626',
-    backgroundColor: '#fef2f2',
     padding: '6px 12px',
+    fontSize: '11px',
+    fontWeight: 600,
     borderRadius: '6px',
-    border: '1px solid #fee2e2',
+    border: '1px solid #e2e8f0',
+    backgroundColor: '#ffffff',
+    color: '#dc2626',
     cursor: 'pointer',
   },
 };

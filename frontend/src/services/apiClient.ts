@@ -2,8 +2,10 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import { ApiResponse, AuthResponse } from '../types/auth';
 
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
 export const apiClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -68,7 +70,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post<ApiResponse<AuthResponse>>('/api/v1/auth/refresh', {
+        const response = await axios.post<ApiResponse<AuthResponse>>(`${API_BASE_URL}/auth/refresh`, {
           refreshToken,
         });
 

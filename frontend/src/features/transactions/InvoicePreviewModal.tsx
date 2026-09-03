@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Transaction } from '../../types/transaction';
 import { formatDecimal } from '../../utils/decimal';
+import { numberToEnglishWords, formatBsDateNepali } from '../../utils/nepaliNumber';
 import { QrCodeGenerator } from '../../components/common/QrCodeGenerator';
 
 interface InvoicePreviewModalProps {
@@ -107,13 +108,14 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
               <div style={{ textAlign: 'right' }}>
                 <div style={styles.docTitle}>
                   {transaction.type === 'pos_invoice'
-                    ? 'TAX INVOICE (POS)'
+                    ? 'संक्षिप्त कर बिजक (ABBREVIATED TAX INVOICE)'
                     : transaction.type === 'sale_invoice'
-                    ? 'TAX INVOICE'
-                    : 'PURCHASE BILL'}
+                    ? 'कर बिजक (TAX INVOICE)'
+                    : 'खरिद बिल (PURCHASE BILL)'}
                 </div>
-                <div style={styles.docNumber}>#{transaction.documentNumber}</div>
-                <div style={styles.subText}>Date: {transaction.bsDate} BS ({new Date(transaction.date).toLocaleDateString()})</div>
+                <div style={styles.docNumber}>बिजक नं (Invoice #): {transaction.documentNumber}</div>
+                <div style={styles.subText}>मिति (Date): {transaction.bsDate} BS ({formatBsDateNepali(transaction.bsDate)})</div>
+                <div style={styles.subText}>AD Date: {new Date(transaction.date).toLocaleDateString()}</div>
                 <span
                   style={{
                     ...styles.statusBadge,
@@ -130,16 +132,20 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
 
             <div style={styles.partiesGrid}>
               <div style={styles.partyBox}>
-                <div style={styles.boxTitle}>Billed To:</div>
+                <div style={styles.boxTitle}>खरिदकर्ताको विवरण (Billed To):</div>
                 <div style={styles.partyName}>{partyName}</div>
-                {partyPan && <div style={styles.subText}>PAN/VAT: {partyPan}</div>}
-                {partyPhone && <div style={styles.subText}>Phone: {partyPhone}</div>}
+                <div style={styles.subText}>
+                  <strong>स्थायी लेखा नं (Buyer PAN):</strong> {partyPan || 'उपभोक्ता (Consumer)'}
+                </div>
+                {partyPhone && <div style={styles.subText}>सम्पर्क (Phone): {partyPhone}</div>}
               </div>
               <div style={styles.partyBox}>
-                <div style={styles.boxTitle}>Payment & Delivery:</div>
-                <div style={styles.subText}>Payment Mode: {(transaction.paymentMode || 'cash').toUpperCase()}</div>
-                <div style={styles.subText}>Currency: NPR • Fiscal Year: 2081/82</div>
-                <div style={styles.subText}>Dispatch: Standard Logistics Hub</div>
+                <div style={styles.boxTitle}>भुक्तानी तथा चलानी (Payment & Terms):</div>
+                <div style={styles.subText}>
+                  <strong>भुक्तानीको किसिम (Mode):</strong> {(transaction.paymentMode || 'cash').toUpperCase()}
+                </div>
+                <div style={styles.subText}>मुद्रा (Currency): NPR (रु.) • आ.व. (FY): 2081/82</div>
+                <div style={styles.subText}>निकासी स्थान: काठमाडौँ, नेपाल</div>
               </div>
             </div>
 
@@ -214,6 +220,14 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ transa
                   <span>NPR {formatDecimal(transaction.balanceDue)}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Amount in Words Banner (IRD Requirement) */}
+            <div style={styles.wordsBanner}>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>अक्षरेपी (In Words): </span>
+              <span style={{ fontStyle: 'italic', color: '#1e3a8a', fontWeight: 600 }}>
+                {numberToEnglishWords(transaction.grandTotal)}
+              </span>
             </div>
 
             {/* Terms & Footer */}
@@ -598,6 +612,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '2px solid #0f172a',
     padding: '8px 0',
     marginTop: '4px',
+  },
+  wordsBanner: {
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '10px 14px',
+    fontSize: '13px',
+    marginBottom: '20px',
   },
   footerSection: {
     display: 'flex',

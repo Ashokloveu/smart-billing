@@ -116,19 +116,19 @@ export const VatRegisterPage: React.FC = () => {
           style={{ ...styles.navBtn, ...(activeTab === 'sales_book' ? styles.activeNavBtn : {}) }}
           onClick={() => setActiveTab('sales_book')}
         >
-          📜 Sales Register (Bikri Khata - Annex 5)
+          📜 अनुसूची ९: बिक्री खाता (Annex 9: Sales Register)
         </button>
         <button
           style={{ ...styles.navBtn, ...(activeTab === 'purchase_book' ? styles.activeNavBtn : {}) }}
           onClick={() => setActiveTab('purchase_book')}
         >
-          📥 Purchase Register (Kharid Khata)
+          📥 अनुसूची ८: खरिद खाता (Annex 8: Purchase Register)
         </button>
         <button
           style={{ ...styles.navBtn, ...(activeTab === 'sequences' ? styles.activeNavBtn : {}) }}
           onClick={() => setActiveTab('sequences')}
         >
-          🔢 Invoice Numbering Sequences
+          🔢 कर बिजक नम्बर प्रणाली (Invoice Sequences)
         </button>
         <button
           style={{ ...styles.navBtn, ...(activeTab === 'audit_logs' ? styles.activeNavBtn : {}) }}
@@ -170,7 +170,7 @@ export const VatRegisterPage: React.FC = () => {
         <div style={styles.card}>
           <div style={styles.regHeader}>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>अनुसूची ५: बिक्री खाता (Annex 5: Sales Book)</h2>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>अनुसूची ९: बिक्री खाता (Annex 9: Sales Book / Bikri Khata)</h2>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                 करदाता दर्ता नं (PAN): <strong>{salesRegister.organizationPan}</strong> | करदाताको नाम:{' '}
                 <strong>{salesRegister.organizationName}</strong>
@@ -248,7 +248,7 @@ export const VatRegisterPage: React.FC = () => {
         <div style={styles.card}>
           <div style={styles.regHeader}>
             <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>अनुसूची ७/८: खरिद खाता (Purchase Book)</h2>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, margin: 0 }}>अनुसूची ८: खरिद खाता (Annex 8: Purchase Book / Kharid Khata)</h2>
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                 करदाता दर्ता नं (PAN): <strong>{purchaseRegister.organizationPan}</strong> | करदाताको नाम:{' '}
                 <strong>{purchaseRegister.organizationName}</strong>

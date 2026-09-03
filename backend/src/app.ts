@@ -27,7 +27,18 @@ export const createApp = (): express.Application => {
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN === '*' ? true : [env.CORS_ORIGIN, 'https://smart-billing-app-mu.vercel.app', 'http://localhost:5173'],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+          origin.includes('vercel.app') ||
+          origin.includes('onrender.com') ||
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1')
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
       credentials: true,
     })
   );

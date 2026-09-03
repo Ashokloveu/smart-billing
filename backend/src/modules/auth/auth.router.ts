@@ -4,18 +4,27 @@ import { validateRequest } from '../../middleware/validateRequest.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { signupSchema, loginSchema, refreshSchema } from './auth.validation.js';
 
+import { rateLimiter } from '../../middleware/rateLimiter.js';
+
 const router = Router();
 
+// Rate limit login: max 10 attempts per 15 minutes
 router.post('/signup', validateRequest(signupSchema), (req, res, next) =>
   authController.signup(req, res, next)
 );
 
-router.post('/login', validateRequest(loginSchema), (req, res, next) =>
-  authController.login(req, res, next)
+router.post(
+  '/login',
+  rateLimiter(15 * 60 * 1000, 10),
+  validateRequest(loginSchema),
+  (req, res, next) => authController.login(req, res, next)
 );
 
-router.post('/refresh', validateRequest(refreshSchema), (req, res, next) =>
-  authController.refresh(req, res, next)
+router.post(
+  '/refresh',
+  rateLimiter(15 * 60 * 1000, 30),
+  validateRequest(refreshSchema),
+  (req, res, next) => authController.refresh(req, res, next)
 );
 
 router.post('/logout', (req, res, next) =>

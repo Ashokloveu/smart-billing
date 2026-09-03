@@ -17,9 +17,25 @@ const startServer = async (): Promise<void> => {
 
     const shutdown = async (signal: string) => {
       logger.info(`Received ${signal}. Shutting down gracefully...`);
-      server.close(() => {
-        logger.info('HTTP server closed.');
-        process.exit(0);
+      
+      // Force shutdown if taking longer than 10 seconds
+      const forceExitTimeout = setTimeout(() => {
+        logger.error('Forceful shutdown: Request draining timeout exceeded.');
+        process.exit(1);
+      }, 10000);
+      forceExitTimeout.unref();
+
+      server.close(async () => {
+        logger.info('HTTP server closed. Draining database connections...');
+        try {
+          const mongoose = await import('mongoose');
+          await mongoose.default.disconnect();
+          logger.info('MongoDB connections closed cleanly.');
+          process.exit(0);
+        } catch (err) {
+          logger.error({ err }, 'Error during database disconnection.');
+          process.exit(1);
+        }
       });
     };
 

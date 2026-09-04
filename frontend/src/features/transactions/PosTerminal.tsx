@@ -63,6 +63,26 @@ export const PosTerminal: React.FC = () => {
     }
   };
 
+  // Play realistic cash register chime on sale completion (C5 -> E5 -> G5 -> C6)
+  const playCashChime = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+        gain.gain.setValueAtTime(0.09, ctx.currentTime + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + idx * 0.08);
+        osc.stop(ctx.currentTime + idx * 0.08 + 0.35);
+      });
+    } catch (e) {}
+  };
+
   useEffect(() => {
     if (!currentOrg?._id) return;
     const fetchMeta = async () => {
@@ -118,9 +138,13 @@ export const PosTerminal: React.FC = () => {
     updateActiveCart(updated);
   };
 
+  const [discount, setDiscount] = useState('0');
+
   const subtotal = cart.reduce((acc, c) => acc + c.quantity * c.rate, 0);
-  const vatAmount = (subtotal * 13) / 100;
-  const grandTotal = subtotal + vatAmount;
+  const discountVal = Math.min(subtotal, Math.max(0, Number(discount) || 0));
+  const taxableSubtotal = Math.max(0, subtotal - discountVal);
+  const vatAmount = (taxableSubtotal * 13) / 100;
+  const grandTotal = taxableSubtotal + vatAmount;
   const changeDue = Math.max(0, Number(receivedCash || 0) - grandTotal);
 
   const handleCheckout = async () => {
@@ -144,19 +168,55 @@ export const PosTerminal: React.FC = () => {
           itemCode: c.item.code,
           quantity: c.quantity.toString(),
           rate: c.rate.toString(),
-          discountAmount: '0.00',
+          discountAmount: (discountVal / cart.length).toFixed(2),
           taxRate: '13.00',
         })),
       });
 
+      playCashChime();
       setCreatedTxn(res.data.data);
       updateActiveCart([]);
       setReceivedCash('');
+      setDiscount('0');
       setCustomerName('Cash Walk-in Customer');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Error processing POS sale');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Keyboard shortcut listener (F2: Checkout, F4: Search, F8: Hold Cart)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        handleCheckout();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        setActiveCartIndex((prev) => (prev + 1) % 3);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, grandTotal, isProcessing, firmId, warehouseId, fiscalYearId]);
+
+  // Barcode / Fast Enter search
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && search.trim()) {
+      const exactMatch = items.find(
+        (i) =>
+          i.code.toLowerCase() === search.trim().toLowerCase() ||
+          (i.barcode && i.barcode.toLowerCase() === search.trim().toLowerCase()) ||
+          i.name.toLowerCase() === search.trim().toLowerCase()
+      );
+      if (exactMatch) {
+        addToCart(exactMatch);
+        setSearch('');
+      }
     }
   };
 
@@ -179,9 +239,10 @@ export const PosTerminal: React.FC = () => {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Search items..."
+              placeholder="Search items or scan barcode... (F4)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               style={styles.quickPosSearchInput}
             />
           </div>
@@ -329,9 +390,33 @@ export const PosTerminal: React.FC = () => {
         {/* Totals Summary */}
         <div style={styles.cartTotals}>
           <div style={styles.totalsRow}>
-            <span>Taxable Subtotal:</span>
+            <span>Gross Subtotal:</span>
             <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(subtotal)}</span>
           </div>
+          <div style={{ ...styles.totalsRow, alignItems: 'center' }}>
+            <span>Discount (Rs.):</span>
+            <input
+              type="number"
+              placeholder="0"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              style={{
+                width: '80px',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                fontSize: '12px',
+                textAlign: 'right',
+                fontFamily: 'JetBrains Mono, monospace',
+              }}
+            />
+          </div>
+          {discountVal > 0 && (
+            <div style={styles.totalsRow}>
+              <span>Taxable Subtotal:</span>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(taxableSubtotal)}</span>
+            </div>
+          )}
           <div style={styles.totalsRow}>
             <span>Nepal VAT (13%):</span>
             <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>NPR {formatDecimal(vatAmount)}</span>

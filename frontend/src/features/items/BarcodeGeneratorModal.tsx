@@ -10,33 +10,96 @@ interface BarcodeGeneratorModalProps {
 
 export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({ item, onClose }) => {
   const [labelCount, setLabelCount] = useState(12);
+  const [batchNo, setBatchNo] = useState('B-2026/01');
+  const [mfgDate, setMfgDate] = useState('2026-01');
+  const [expDate, setExpDate] = useState('2027-12');
+  const [showBatchInfo, setShowBatchInfo] = useState(true);
 
   if (!item) return null;
 
   const barcodeValue = item.barcode || item.code || '890123456789';
   const price = (item as any).salePrice || (item as any).sellingPrice || '0.00';
 
+  // SVG Simulated Barcode Generator (Code 128 / EAN format)
+  const renderSimulatedBarcode = (code: string) => {
+    // Generate distinct bar pattern based on char codes
+    const bars: boolean[] = [];
+    bars.push(true, false, true); // start guard
+    for (let i = 0; i < code.length; i++) {
+      const charVal = code.charCodeAt(i);
+      bars.push(
+        (charVal & 1) !== 0,
+        (charVal & 2) !== 0,
+        (charVal & 4) !== 0,
+        (charVal & 8) !== 0,
+        false
+      );
+    }
+    bars.push(true, false, true); // stop guard
+
+    return (
+      <svg width="140" height="38" style={{ display: 'block', margin: '0 auto' }}>
+        {bars.map((isBlack, i) => (
+          <rect
+            key={i}
+            x={i * 2}
+            y="0"
+            width={isBlack ? 2 : 0}
+            height="38"
+            fill="#0f172a"
+          />
+        ))}
+      </svg>
+    );
+  };
+
   return (
     <div style={styles.overlay}>
+      <style>
+        {`
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #printable-barcode-sheet, #printable-barcode-sheet * {
+              visibility: visible;
+            }
+            #printable-barcode-sheet {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100% !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        `}
+      </style>
+
       <div style={styles.modal}>
-        <div style={styles.actionsBar}>
+        {/* Controls Bar */}
+        <div style={styles.actionsBar} className="no-print">
           <div>
-            <h2 style={styles.title}>🏷️ Barcode & Price Tag Sticker Designer</h2>
-            <p style={styles.subtitle}>Print adhesive labels for {item.name}</p>
+            <h2 style={styles.title}>🏷️ Smart Billing Barcode & Price Tag Designer</h2>
+            <p style={styles.subtitle}>Print adhesive labels and shelf tags for <strong>{item.name}</strong></p>
           </div>
 
           <div style={styles.controls}>
             <div style={styles.controlGroup}>
-              <label style={styles.controlLabel}>Copies:</label>
+              <label style={styles.controlLabel}>Label Copies:</label>
               <input
                 type="number"
                 min="1"
-                max="100"
+                max="120"
                 value={labelCount}
-                onChange={(e) => setLabelCount(Number(e.target.value))}
+                onChange={(e) => setLabelCount(Math.max(1, Number(e.target.value)))}
                 style={styles.numberInput}
               />
             </div>
+
             <button style={styles.printBtn} onClick={() => window.print()}>
               🖨️ Print Labels
             </button>
@@ -46,19 +109,72 @@ export const BarcodeGeneratorModal: React.FC<BarcodeGeneratorModalProps> = ({ it
           </div>
         </div>
 
+        {/* Customization Options Bar */}
+        <div style={styles.customOptionsBar} className="no-print">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            <input
+              type="checkbox"
+              checked={showBatchInfo}
+              onChange={(e) => setShowBatchInfo(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Include Batch & Expiry Date
+          </label>
+
+          {showBatchInfo && (
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Batch #"
+                value={batchNo}
+                onChange={(e) => setBatchNo(e.target.value)}
+                style={styles.optInput}
+              />
+              <input
+                type="text"
+                placeholder="MFG: YYYY-MM"
+                value={mfgDate}
+                onChange={(e) => setMfgDate(e.target.value)}
+                style={styles.optInput}
+              />
+              <input
+                type="text"
+                placeholder="EXP: YYYY-MM"
+                value={expDate}
+                onChange={(e) => setExpDate(e.target.value)}
+                style={styles.optInput}
+              />
+            </div>
+          )}
+        </div>
+
         {/* Printable Label Grid */}
-        <div style={styles.sheet}>
+        <div id="printable-barcode-sheet" style={styles.sheet}>
           <div style={styles.grid}>
             {Array.from({ length: labelCount }).map((_, idx) => (
               <div key={idx} style={styles.tag}>
-                <div style={styles.storeName}>SMART STORE</div>
+                <div style={styles.storeName}>SMART BILLING</div>
                 <div style={styles.itemName}>{item.name}</div>
+                <div style={styles.skuText}>SKU: {item.code}</div>
+
                 <div style={styles.itemPrice}>
                   MRP: NPR {formatDecimal(price)}
                 </div>
+
+                {showBatchInfo && (
+                  <div style={styles.batchInfoRow}>
+                    <span>B: {batchNo}</span>
+                    <span>EXP: {expDate}</span>
+                  </div>
+                )}
+
                 <div style={styles.barcodeBox}>
-                  <QrCodeGenerator value={barcodeValue} size={64} />
+                  {renderSimulatedBarcode(barcodeValue)}
                   <div style={styles.barcodeText}>{barcodeValue}</div>
+                </div>
+
+                <div style={styles.qrCorner}>
+                  <QrCodeGenerator value={barcodeValue} size={36} />
                 </div>
               </div>
             ))}
@@ -77,19 +193,19 @@ const styles: Record<string, React.CSSProperties> = {
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 150,
-    padding: '16px',
-    overflowY: 'auto',
+    padding: '20px',
   },
   modal: {
-    backgroundColor: '#ffffff',
-    borderRadius: '12px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '16px',
     width: '100%',
-    maxWidth: '800px',
-    maxHeight: '90vh',
+    maxWidth: '900px',
+    maxHeight: '92vh',
     overflowY: 'auto',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   },
@@ -98,115 +214,128 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '16px 24px',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderBottom: '1px solid #e2e8f0',
-    position: 'sticky',
-    top: 0,
-    zIndex: 2,
-  },
-  title: {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#0f172a',
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: '12px',
-    color: '#64748b',
-    marginTop: '2px',
-  },
-  controls: {
-    display: 'flex',
-    alignItems: 'center',
+    borderTopLeftRadius: '16px',
+    borderTopRightRadius: '16px',
+    flexWrap: 'wrap',
     gap: '12px',
   },
-  controlGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-  },
-  controlLabel: {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: '#475569',
-  },
+  title: { fontSize: '17px', fontWeight: 800, color: '#0f172a', margin: 0 },
+  subtitle: { fontSize: '12px', color: '#64748b', marginTop: '2px' },
+  controls: { display: 'flex', alignItems: 'center', gap: '10px' },
+  controlGroup: { display: 'flex', alignItems: 'center', gap: '6px' },
+  controlLabel: { fontSize: '12px', fontWeight: 600, color: '#475569' },
   numberInput: {
     width: '60px',
     padding: '6px 8px',
     borderRadius: '6px',
     border: '1px solid #cbd5e1',
     fontSize: '13px',
+    textAlign: 'center',
+    outline: 'none',
   },
   printBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#10b981',
     color: '#ffffff',
-    border: 'none',
+    padding: '7px 16px',
     borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: 600,
+    fontSize: '12px',
+    fontWeight: 700,
+    border: 'none',
     cursor: 'pointer',
   },
   closeBtn: {
-    padding: '8px 14px',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#f1f5f9',
     color: '#475569',
-    border: 'none',
+    padding: '7px 14px',
     borderRadius: '6px',
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: 600,
+    border: '1px solid #cbd5e1',
     cursor: 'pointer',
   },
-  sheet: {
-    padding: '24px',
-    backgroundColor: '#ffffff',
+  customOptionsBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 24px',
+    backgroundColor: '#f1f5f9',
+    borderBottom: '1px solid #e2e8f0',
+    flexWrap: 'wrap',
+    gap: '10px',
   },
+  optInput: {
+    padding: '4px 8px',
+    borderRadius: '4px',
+    border: '1px solid #cbd5e1',
+    fontSize: '11px',
+    outline: 'none',
+    width: '90px',
+  },
+  sheet: { padding: '24px', backgroundColor: '#ffffff', minHeight: '400px' },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '16px',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gap: '14px',
   },
   tag: {
-    border: '1px dashed #94a3b8',
-    borderRadius: '8px',
-    padding: '12px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+    border: '1px dashed #0f172a',
+    borderRadius: '6px',
+    padding: '10px 12px',
     textAlign: 'center',
     backgroundColor: '#ffffff',
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '170px',
+    boxSizing: 'border-box',
   },
   storeName: {
-    fontSize: '9px',
-    fontWeight: 700,
-    color: '#64748b',
-    letterSpacing: '0.05em',
+    fontSize: '10px',
+    fontWeight: 900,
+    letterSpacing: '1px',
+    color: '#10b981',
   },
   itemName: {
     fontSize: '12px',
-    fontWeight: 700,
+    fontWeight: 800,
     color: '#0f172a',
-    margin: '4px 0',
-    maxWidth: '180px',
+    margin: '2px 0',
+    whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
   },
+  skuText: { fontSize: '10px', fontFamily: 'monospace', color: '#64748b' },
   itemPrice: {
-    fontSize: '13px',
-    fontWeight: 800,
-    color: '#16a34a',
-    marginBottom: '6px',
+    fontSize: '14px',
+    fontWeight: 900,
+    color: '#0f172a',
+    margin: '4px 0',
   },
-  barcodeBox: {
+  batchInfoRow: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    fontSize: '9px',
+    color: '#475569',
+    borderTop: '1px dotted #cbd5e1',
+    paddingTop: '2px',
+    margin: '2px 0',
   },
+  barcodeBox: { marginTop: '4px' },
   barcodeText: {
     fontSize: '10px',
     fontFamily: 'monospace',
-    color: '#334155',
+    letterSpacing: '2px',
+    color: '#0f172a',
     marginTop: '2px',
+    fontWeight: 700,
+  },
+  qrCorner: {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    opacity: 0.85,
   },
 };

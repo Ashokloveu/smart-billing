@@ -8,6 +8,8 @@
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
     "test:invariants": "cd backend && node scripts/verify_invariants.js",
+    "test:smoke": "cd backend && npm run test:smoke",
+    "test:database": "cd backend && npm run test:database",
     "test:workflows": "cd backend && node scripts/verify_live_workflows.js",
     "validate:env": "cd backend && node scripts/validate_env.cjs"
   }

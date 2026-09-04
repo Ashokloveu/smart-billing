@@ -23,7 +23,7 @@ export interface CreateJournalEntryDTO {
   bsDate: string;
   narration: string;
   status?: 'draft' | 'posted';
-  sourceModule?: 'manual' | 'sales' | 'purchase' | 'pos' | 'payment' | 'inventory' | 'expense';
+  sourceModule?: 'manual' | 'sales' | 'purchase' | 'pos' | 'payment' | 'inventory' | 'expense' | 'treasury';
   sourceDocumentId?: string;
   sourceDocumentNumber?: string;
   currency?: string;

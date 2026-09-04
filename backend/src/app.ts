@@ -18,10 +18,14 @@ import { operationsRouter } from './modules/operations/operations.routes.js';
 import { notificationRouter } from './modules/notifications/notification.routes.js';
 import { hrRouter } from './modules/hr/hr.routes.js';
 import { crmRouter } from './modules/crm/routes/crm.routes.js';
+import { treasuryRouter } from './modules/treasury/treasury.routes.js';
 import { NotFoundError } from './errors/AppError.js';
 
 export const createApp = (): express.Application => {
   const app = express();
+  const allowedOrigins = env.CORS_ORIGIN.split(',')
+    .map((origin) => origin.trim().replace(/\/$/, ''))
+    .filter(Boolean);
 
   // Security & Parsing
   app.use(helmet());
@@ -29,15 +33,14 @@ export const createApp = (): express.Application => {
     cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (
-          origin.includes('vercel.app') ||
-          origin.includes('onrender.com') ||
-          origin.includes('localhost') ||
-          origin.includes('127.0.0.1')
-        ) {
+        const normalizedOrigin = origin.replace(/\/$/, '');
+        const isLocalDevelopment =
+          env.NODE_ENV !== 'production' &&
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizedOrigin);
+        if (allowedOrigins.includes(normalizedOrigin) || isLocalDevelopment) {
           return callback(null, true);
         }
-        return callback(null, true);
+        return callback(new Error('Origin is not allowed by CORS'));
       },
       credentials: true,
     })
@@ -102,6 +105,7 @@ export const createApp = (): express.Application => {
   app.use('/api/v1/organizations/:orgId', notificationRouter);
   app.use('/api/v1/organizations/:orgId', hrRouter);
   app.use('/api/v1/organizations/:orgId', crmRouter);
+  app.use('/api/v1/organizations/:orgId', treasuryRouter);
 
   // Catch-all 404 for undefined routes
   app.use((req, _res, next) => {

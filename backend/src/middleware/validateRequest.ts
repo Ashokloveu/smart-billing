@@ -11,9 +11,11 @@ export const validateRequest = (schema: AnyZodObject) => {
         params: req.params,
       });
 
-      req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
+      // Most schemas validate only one or two request sections. Preserve the
+      // original Express values for sections omitted from the Zod schema.
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.query !== undefined) req.query = parsed.query;
+      if (parsed.params !== undefined) req.params = parsed.params;
       next();
     } catch (error) {
       if (error instanceof ZodError) {

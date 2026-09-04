@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:smoke": "npm run build && node scripts/verify_http_smoke.js",
+    "test:database": "npm run build && node scripts/verify_database_workflows.js"
   },
   "dependencies": {
     "@types/cookie-parser": "^1.4.7",
@@ -29,6 +31,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.2.0",
     "tsx": "^4.19.1"
   }
 }

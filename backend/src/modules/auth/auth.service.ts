@@ -114,6 +114,12 @@ export class AuthService {
       throw new UnauthorizedError('Invalid refresh token');
     }
 
+    if (existingToken.expiresAt.getTime() <= Date.now()) {
+      existingToken.isRevoked = true;
+      await existingToken.save();
+      throw new UnauthorizedError('Refresh token has expired');
+    }
+
     if (existingToken.isRevoked) {
       // Possible token reuse attack: revoke all tokens in this family
       await RefreshToken.updateMany(

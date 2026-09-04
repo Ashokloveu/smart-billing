@@ -72,15 +72,22 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
       const res = await apiClient.post('/organizations', {
         name,
         legalName: legalName || name,
-        panNumber: panNumber || '600000000',
         slug,
         industry,
+        baseCity: city,
+        country: 'NP',
+        currency,
+        taxRegistration: {
+          type: 'PAN',
+          number: panNumber,
+        },
         settings: {
-          currency,
-          dateFormat: 'YYYY-MM-DD',
-          calendarSystem: 'bikram_sambat',
-          negativeStockAllowed: false,
-          taxType: 'VAT',
+          defaultCurrency: currency,
+          decimalPrecision: 2,
+          roundOffMethod: 'nearest',
+          allowNegativeStock: false,
+          displayCalendar: 'both',
+          primaryLanguage: 'bilingual',
         },
       });
 
@@ -154,13 +161,17 @@ export const OrganizationModal: React.FC<OrganizationModalProps> = ({
 
           <div style={styles.row}>
             <div style={styles.col}>
-              <label style={styles.label}>Nepal PAN / VAT Number</label>
+              <label style={styles.label}>Nepal PAN / VAT Number *</label>
               <input
                 type="text"
                 style={styles.input}
                 placeholder="e.g. 601234567"
                 value={panNumber}
                 onChange={(e) => setPanNumber(e.target.value)}
+                inputMode="numeric"
+                pattern="[0-9]{9}"
+                maxLength={9}
+                required
               />
             </div>
             <div style={styles.col}>

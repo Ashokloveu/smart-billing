@@ -44,7 +44,7 @@ jobs:
           npm audit --audit-level=high
 
   build_and_verify:
-    name: TypeScript Build & Regression Invariants
+    name: Build, Invariants & Database Workflows
     runs-on: ubuntu-latest
     needs: audit_and_security
     steps:
@@ -81,3 +81,8 @@ jobs:
           cd backend
           node scripts/verify_invariants.js
           npx tsx scripts/verify_erp_regression.ts
+
+      - name: Execute Isolated Database Workflow Suite
+        run: |
+          cd backend
+          node scripts/verify_database_workflows.js

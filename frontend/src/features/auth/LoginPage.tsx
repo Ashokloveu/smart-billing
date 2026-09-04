@@ -97,7 +97,7 @@ export const LoginPage: React.FC = () => {
             <div style={styles.logoBadge}>⚡</div>
             <div>
               <div style={styles.brandName}>Smart Billing</div>
-              <div style={styles.brandTagline}>Enterprise SaaS • Nepal IRD Certified</div>
+              <div style={styles.brandTagline}>Billing and accounting workflows built for Nepal</div>
             </div>
           </div>
 
@@ -292,12 +292,12 @@ export const LoginPage: React.FC = () => {
 
             <div style={styles.securityFooter}>
               <div style={styles.securityTag}>
-                <span>🔒 Bank-Grade AES-256 Cloud Encryption</span>
+                <span>🔒 Secure encrypted cloud connection</span>
                 <span>•</span>
                 <span>MongoDB Atlas</span>
               </div>
               <div style={styles.irdBadge}>
-                🇳🇵 Certified for Nepal Inland Revenue Department (IRD) Billing Standards
+                🇳🇵 Designed for Nepal PAN/VAT billing workflows
               </div>
             </div>
           </div>

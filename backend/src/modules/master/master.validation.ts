@@ -3,13 +3,24 @@ import { z } from 'zod';
 export const createOrganizationSchema = z.object({
   body: z.object({
     name: z.string().min(2).max(120),
+    legalName: z.string().min(2).max(160).optional(),
     slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
+    industry: z.string().min(2).max(80).optional(),
+    baseCity: z.string().min(1).max(100).optional(),
     country: z.string().default('NP'),
     currency: z.string().default('NPR'),
     taxRegistration: z.object({
       type: z.enum(['PAN', 'VAT']),
       number: z.string().regex(/^[0-9]{9}$/, 'PAN must be exactly 9 numeric digits'),
     }),
+    settings: z.object({
+      defaultCurrency: z.string().default('NPR'),
+      decimalPrecision: z.number().int().min(0).max(4).default(2),
+      roundOffMethod: z.enum(['nearest', 'up', 'down', 'none']).default('nearest'),
+      allowNegativeStock: z.boolean().default(false),
+      displayCalendar: z.enum(['bikram_sambat', 'gregorian', 'both']).default('both'),
+      primaryLanguage: z.enum(['en', 'ne', 'bilingual']).default('bilingual'),
+    }).optional(),
   }),
 });
 

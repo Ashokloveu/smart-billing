@@ -16,6 +16,10 @@ const { Opportunity } = require('../dist/modules/crm/models/Opportunity');
 const { Quotation } = require('../dist/modules/crm/models/Quotation');
 const { CustomerActivity } = require('../dist/modules/crm/models/CustomerActivity');
 const { SalesTarget } = require('../dist/modules/crm/models/SalesTarget');
+const { TreasuryAccount } = require('../dist/models/TreasuryAccount');
+const { FundTransfer } = require('../dist/models/FundTransfer');
+const { PostDatedCheque } = require('../dist/models/PostDatedCheque');
+const { BankReconciliation } = require('../dist/models/BankReconciliation');
 
 function runRegressionSuite() {
   console.log('=================================================================');
@@ -34,6 +38,10 @@ function runRegressionSuite() {
     { name: 'Quotation', model: Quotation },
     { name: 'CustomerActivity', model: CustomerActivity },
     { name: 'SalesTarget', model: SalesTarget },
+    { name: 'TreasuryAccount', model: TreasuryAccount },
+    { name: 'FundTransfer', model: FundTransfer },
+    { name: 'PostDatedCheque', model: PostDatedCheque },
+    { name: 'BankReconciliation', model: BankReconciliation },
   ];
 
   for (const m of models) {
@@ -77,6 +85,13 @@ function runRegressionSuite() {
       lines: [
         { account: '5100 Inventory Shrinkage Expense', debit: 1250.00, credit: 0 },
         { account: '1140 Inventory Asset', debit: 0, credit: 1250.00 },
+      ]
+    },
+    {
+      source: 'Treasury Contra Transfer',
+      lines: [
+        { account: 'Destination Bank', debit: 50000.00, credit: 0 },
+        { account: 'Source Cash', debit: 0, credit: 50000.00 },
       ]
     }
   ];

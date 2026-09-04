@@ -1,39 +1,50 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LoginPage } from './features/auth/LoginPage';
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { OnlineStorePage } from './features/store/OnlineStorePage';
-import { PartiesPage } from './features/parties/PartiesPage';
-import { ItemsPage } from './features/items/ItemsPage';
-import { SettingsPage } from './features/settings/SettingsPage';
-import { InventoryDashboard } from './features/inventory/InventoryDashboard';
-import { TransactionManager } from './features/transactions/TransactionManager';
-import { PosTerminal } from './features/transactions/PosTerminal';
-import { PaymentInPage } from './features/transactions/PaymentInPage';
-import { ReportsDashboard } from './features/reports/pages/ReportsDashboard';
-import { AccountingDashboard } from './features/accounting/pages/AccountingDashboard';
-import { VatRegisterPage } from './features/compliance/pages/VatRegisterPage';
-import { ProcurementPage } from './features/operations/pages/ProcurementPage';
-import { SalesOrderPage } from './features/operations/pages/SalesOrderPage';
-import { WarehouseOperationsPage } from './features/operations/pages/WarehouseOperationsPage';
-import { EmployeeDirectoryPage } from './features/hr/pages/EmployeeDirectoryPage';
-import { AttendanceManagementPage } from './features/hr/pages/AttendanceManagementPage';
-import { PayrollProcessingPage } from './features/hr/pages/PayrollProcessingPage';
-import { ExecutiveBiPage } from './features/hr/pages/ExecutiveBiPage';
-import { LeadManagementPage } from './features/crm/pages/LeadManagementPage';
-import { OpportunityPipelinePage } from './features/crm/pages/OpportunityPipelinePage';
-import { QuotationListPage } from './features/crm/pages/QuotationListPage';
-import { Customer360ViewPage } from './features/crm/pages/Customer360ViewPage';
-import { SalesTargetsPage } from './features/crm/pages/SalesTargetsPage';
-import { CustomerPortalPage } from './features/crm/pages/CustomerPortalPage';
-import { ManageAccountsPage } from './features/accounting/pages/ManageAccountsPage';
-import { ManageStaffsPage } from './features/hr/pages/ManageStaffsPage';
-import { BusinessCardPage } from './features/tools/BusinessCardPage';
-import { BarcodeGeneratorPage } from './features/tools/BarcodeGeneratorPage';
-import { ImportDataPage } from './features/tools/ImportDataPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/guards/ProtectedRoute';
+
+const lazyNamed = (loader: () => Promise<Record<string, unknown>>, exportName: string) =>
+  React.lazy(async () => ({ default: (await loader())[exportName] as React.ComponentType<any> }));
+
+const LoginPage = lazyNamed(() => import('./features/auth/LoginPage'), 'LoginPage');
+const DashboardPage = lazyNamed(() => import('./features/dashboard/DashboardPage'), 'DashboardPage');
+const OnlineStorePage = lazyNamed(() => import('./features/store/OnlineStorePage'), 'OnlineStorePage');
+const PartiesPage = lazyNamed(() => import('./features/parties/PartiesPage'), 'PartiesPage');
+const ItemsPage = lazyNamed(() => import('./features/items/ItemsPage'), 'ItemsPage');
+const SettingsPage = lazyNamed(() => import('./features/settings/SettingsPage'), 'SettingsPage');
+const InventoryDashboard = lazyNamed(() => import('./features/inventory/InventoryDashboard'), 'InventoryDashboard');
+const TransactionManager = lazyNamed(() => import('./features/transactions/TransactionManager'), 'TransactionManager');
+const PosTerminal = lazyNamed(() => import('./features/transactions/PosTerminal'), 'PosTerminal');
+const PaymentInPage = lazyNamed(() => import('./features/transactions/PaymentInPage'), 'PaymentInPage');
+const ReportsDashboard = lazyNamed(() => import('./features/reports/pages/ReportsDashboard'), 'ReportsDashboard');
+const AccountingDashboard = lazyNamed(() => import('./features/accounting/pages/AccountingDashboard'), 'AccountingDashboard');
+const BankCashDashboard = lazyNamed(() => import('./features/accounting/pages/BankCashDashboard'), 'BankCashDashboard');
+const VatRegisterPage = lazyNamed(() => import('./features/compliance/pages/VatRegisterPage'), 'VatRegisterPage');
+const ProcurementPage = lazyNamed(() => import('./features/operations/pages/ProcurementPage'), 'ProcurementPage');
+const SalesOrderPage = lazyNamed(() => import('./features/operations/pages/SalesOrderPage'), 'SalesOrderPage');
+const WarehouseOperationsPage = lazyNamed(() => import('./features/operations/pages/WarehouseOperationsPage'), 'WarehouseOperationsPage');
+const EmployeeDirectoryPage = lazyNamed(() => import('./features/hr/pages/EmployeeDirectoryPage'), 'EmployeeDirectoryPage');
+const AttendanceManagementPage = lazyNamed(() => import('./features/hr/pages/AttendanceManagementPage'), 'AttendanceManagementPage');
+const PayrollProcessingPage = lazyNamed(() => import('./features/hr/pages/PayrollProcessingPage'), 'PayrollProcessingPage');
+const ExecutiveBiPage = lazyNamed(() => import('./features/hr/pages/ExecutiveBiPage'), 'ExecutiveBiPage');
+const LeadManagementPage = lazyNamed(() => import('./features/crm/pages/LeadManagementPage'), 'LeadManagementPage');
+const OpportunityPipelinePage = lazyNamed(() => import('./features/crm/pages/OpportunityPipelinePage'), 'OpportunityPipelinePage');
+const QuotationListPage = lazyNamed(() => import('./features/crm/pages/QuotationListPage'), 'QuotationListPage');
+const Customer360ViewPage = lazyNamed(() => import('./features/crm/pages/Customer360ViewPage'), 'Customer360ViewPage');
+const SalesTargetsPage = lazyNamed(() => import('./features/crm/pages/SalesTargetsPage'), 'SalesTargetsPage');
+const CustomerPortalPage = lazyNamed(() => import('./features/crm/pages/CustomerPortalPage'), 'CustomerPortalPage');
+const ManageAccountsPage = lazyNamed(() => import('./features/accounting/pages/ManageAccountsPage'), 'ManageAccountsPage');
+const ManageStaffsPage = lazyNamed(() => import('./features/hr/pages/ManageStaffsPage'), 'ManageStaffsPage');
+const BusinessCardPage = lazyNamed(() => import('./features/tools/BusinessCardPage'), 'BusinessCardPage');
+const BarcodeGeneratorPage = lazyNamed(() => import('./features/tools/BarcodeGeneratorPage'), 'BarcodeGeneratorPage');
+const ImportDataPage = lazyNamed(() => import('./features/tools/ImportDataPage'), 'ImportDataPage');
+
+const RouteLoadingFallback = () => (
+  <div role="status" aria-live="polite" style={{ padding: 32, color: '#475569' }}>
+    Loading workspace…
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +60,7 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <Suspense fallback={<RouteLoadingFallback />}>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -72,6 +84,7 @@ export const App: React.FC = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/inventory" element={<InventoryDashboard />} />
               <Route path="/accounting" element={<AccountingDashboard />} />
+              <Route path="/bank-cash" element={<BankCashDashboard />} />
               <Route path="/reports" element={<ReportsDashboard />} />
               <Route path="/compliance" element={<VatRegisterPage />} />
               <Route path="/procurement" element={<ProcurementPage />} />
@@ -99,6 +112,7 @@ export const App: React.FC = () => {
           {/* Catch-all Redirect */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </QueryClientProvider>
   );

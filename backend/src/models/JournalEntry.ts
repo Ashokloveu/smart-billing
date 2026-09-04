@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type JournalStatus = 'draft' | 'submitted' | 'approved' | 'posted' | 'rejected' | 'reversed' | 'cancelled';
-export type JournalSourceModule = 'manual' | 'sales' | 'purchase' | 'pos' | 'payment' | 'inventory' | 'expense';
+export type JournalSourceModule = 'manual' | 'sales' | 'purchase' | 'pos' | 'payment' | 'inventory' | 'expense' | 'treasury';
 
 export interface IJournalLine {
   accountId: mongoose.Types.ObjectId;
@@ -83,7 +83,7 @@ const JournalEntrySchema = new Schema<IJournalEntry>(
     },
     sourceModule: {
       type: String,
-      enum: ['manual', 'sales', 'purchase', 'pos', 'payment', 'inventory', 'expense'],
+      enum: ['manual', 'sales', 'purchase', 'pos', 'payment', 'inventory', 'expense', 'treasury'],
       default: 'manual',
     },
     sourceDocumentId: { type: Schema.Types.ObjectId, default: null },

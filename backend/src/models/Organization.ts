@@ -3,7 +3,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IOrganization extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
+  legalName?: string;
   slug: string;
+  industry?: string;
   country: string;
   currency: string;
   timezone: string;
@@ -34,7 +36,9 @@ export interface IOrganization extends Document {
 const OrganizationSchema = new Schema<IOrganization>(
   {
     name: { type: String, required: true, trim: true, minlength: 2, maxlength: 120 },
+    legalName: { type: String, trim: true, maxlength: 160 },
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    industry: { type: String, trim: true, maxlength: 80 },
     country: { type: String, required: true, default: 'NP' },
     currency: { type: String, required: true, default: 'NPR' },
     timezone: { type: String, required: true, default: 'Asia/Kathmandu' },

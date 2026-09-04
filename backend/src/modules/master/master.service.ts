@@ -51,6 +51,10 @@ export class MasterService {
         PERMISSIONS.REPORT_PNL_VIEW,
         PERMISSIONS.PARTY_VIEW,
         PERMISSIONS.ITEM_VIEW,
+        PERMISSIONS.ACCOUNTING_VIEW,
+        PERMISSIONS.TREASURY_VIEW,
+        PERMISSIONS.TREASURY_MANAGE,
+        PERMISSIONS.TREASURY_RECONCILE,
       ],
     });
 
@@ -62,11 +66,27 @@ export class MasterService {
       isHeadOffice: true,
       address: {
         line1: 'Head Office',
-        city: 'Kathmandu',
-        district: 'Kathmandu',
+        city: data.baseCity || 'Kathmandu',
+        district: data.baseCity || 'Kathmandu',
         province: 'Bagmati',
       },
       phone: '+977-1-0000000',
+    });
+
+    // Create an immediately usable accounting period. Administrators can replace
+    // this with their exact statutory Nepal fiscal-year dates during onboarding.
+    const today = new Date();
+    const startDate = new Date(Date.UTC(today.getUTCFullYear(), 0, 1));
+    const endDate = new Date(Date.UTC(today.getUTCFullYear(), 11, 31, 23, 59, 59));
+    await FiscalPeriod.create({
+      organizationId: org._id,
+      label: `Setup Period ${today.getUTCFullYear()}`,
+      startDate,
+      endDate,
+      bsStartDate: startDate.toISOString().slice(0, 10),
+      bsEndDate: endDate.toISOString().slice(0, 10),
+      isCurrent: true,
+      isClosed: false,
     });
 
     // Create Default Nepal 13% VAT Policy
@@ -104,7 +124,21 @@ export class MasterService {
     const memberships = await CompanyUser.find({ userId, status: 'active' })
       .populate('organizationId')
       .populate('roleId');
-    return memberships;
+    return memberships
+      .filter((membership) => membership.organizationId)
+      .map((membership) => {
+        const organization = (membership.organizationId as any).toObject();
+        const role = membership.roleId as any;
+        return {
+          ...organization,
+          membership: {
+            roleId: role?._id?.toString(),
+            roleName: role?.name,
+            permissions: role?.permissions || [],
+            assignedFirmIds: membership.assignedFirmIds,
+          },
+        };
+      });
   }
 
   public async getOrganization(orgId: string): Promise<IOrganization> {

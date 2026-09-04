@@ -28,7 +28,7 @@ export const createJournalEntrySchema = z.object({
     bsDate: z.string().min(1, 'Bikram Sambat date is required'),
     narration: z.string().min(1, 'Voucher narration is required').trim(),
     status: z.enum(['draft', 'posted']).optional(),
-    sourceModule: z.enum(['manual', 'sales', 'purchase', 'pos', 'payment', 'inventory', 'expense']).optional(),
+    sourceModule: z.enum(['manual', 'sales', 'purchase', 'pos', 'payment', 'inventory', 'expense', 'treasury']).optional(),
     sourceDocumentId: z.string().optional(),
     sourceDocumentNumber: z.string().optional(),
     currency: z.string().optional(),

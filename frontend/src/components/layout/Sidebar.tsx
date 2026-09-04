@@ -230,6 +230,18 @@ export const Sidebar: React.FC = () => {
           <span>{lang === 'np' ? 'खाता व्यवस्थापन' : 'Manage Accounts'}</span>
         </NavLink>
 
+        {/* Bank & Cash Management */}
+        <NavLink
+          to="/bank-cash"
+          style={({ isActive }) => ({
+            ...styles.navItem,
+            ...(isActive ? styles.navItemActive : {}),
+          })}
+        >
+          <span style={styles.navIcon}>🏦</span>
+          <span>{lang === 'np' ? 'बैंक र नगद' : 'Bank & Cash'}</span>
+        </NavLink>
+
         {/* GROUP 2: Management */}
         <div style={{ ...styles.groupHeader, marginTop: '20px' }}>
           {lang === 'np' ? 'व्यवस्थापन' : 'Management'}

@@ -12,7 +12,12 @@ const STORAGE_KEY = 'smart_billing_current_org';
 
 export const useOrgStore = create<OrgState>((set) => {
   const stored = localStorage.getItem(STORAGE_KEY);
-  const initialOrg = stored ? JSON.parse(stored) : null;
+  let initialOrg: Organization | null = null;
+  try {
+    initialOrg = stored ? JSON.parse(stored) : null;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 
   return {
     currentOrg: initialOrg,

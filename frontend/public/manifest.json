@@ -1,16 +1,12 @@
 {
   "short_name": "SmartBilling",
-  "name": "Smart Billing ERP - Nepal & Global SaaS",
+  "name": "Smart Billing — Business ERP for Nepal",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "/smart-billing-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
@@ -18,5 +14,5 @@
   "theme_color": "#2563eb",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "description": "Enterprise Billing, POS, Inventory, and Accounting for Nepal & Global Businesses"
+  "description": "Invoicing, POS, inventory, accounting, and Nepal VAT workflows for growing businesses"
 }

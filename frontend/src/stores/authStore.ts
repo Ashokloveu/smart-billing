@@ -19,7 +19,12 @@ const STORAGE_KEYS = {
 
 export const useAuthStore = create<AuthState>((set) => {
   const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
-  const initialUser = storedUser ? JSON.parse(storedUser) : null;
+  let initialUser: User | null = null;
+  try {
+    initialUser = storedUser ? JSON.parse(storedUser) : null;
+  } catch {
+    localStorage.removeItem(STORAGE_KEYS.USER);
+  }
   const initialAccess = localStorage.getItem(STORAGE_KEYS.ACCESS);
   const initialRefresh = localStorage.getItem(STORAGE_KEYS.REFRESH);
 

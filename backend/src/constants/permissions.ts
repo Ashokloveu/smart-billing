@@ -37,6 +37,9 @@ export const PERMISSIONS = {
   JOURNAL_APPROVE: 'journal:approve',
   JOURNAL_CANCEL: 'journal:cancel',
   ACCOUNTING_VIEW: 'accounting:view',
+  TREASURY_VIEW: 'treasury:view',
+  TREASURY_MANAGE: 'treasury:manage',
+  TREASURY_RECONCILE: 'treasury:reconcile',
 
   // Reports
   REPORT_VAT_VIEW: 'report:vat:view',

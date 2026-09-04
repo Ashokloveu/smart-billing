@@ -6,14 +6,16 @@ import { OrganizationModal } from './OrganizationModal';
 import { GlobalSearchModal } from '../common/GlobalSearchModal';
 import { apiClient } from '../../services/apiClient';
 import { useLangStore } from '../../stores/langStore';
+import { useOrgStore } from '../../stores/orgStore';
+import { Organization } from '../../types/master';
 
 export const Header: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, refreshToken, logout } = useAuthStore();
+  const { currentOrg, setCurrentOrg, setOrganizations } = useOrgStore();
   const { lang, toggleLang, t } = useLangStore();
   const navigate = useNavigate();
 
-  const [organizations, setOrganizations] = useState<any[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<any | null>(null);
+  const [organizations, setLocalOrganizations] = useState<Organization[]>([]);
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -35,34 +37,34 @@ export const Header: React.FC = () => {
     const fetchOrgs = async () => {
       try {
         const res = await apiClient.get('/organizations');
-        const orgList = res.data?.data || [];
+        const orgList: Organization[] = res.data?.data || [];
+        setLocalOrganizations(orgList);
         setOrganizations(orgList);
         if (orgList.length > 0) {
-          setSelectedOrg(orgList[0]);
+          const stillAvailable = orgList.find((org) => org._id === currentOrg?._id);
+          setCurrentOrg(stillAvailable || orgList[0]);
         }
       } catch (err) {
-        // Fallback default organization
-        const defaultOrg = {
-          _id: 'default-org-1',
-          name: 'Himalayan Enterprises Pvt. Ltd.',
-          code: 'HQ-KTM',
-          plan: 'Enterprise SaaS',
-        };
-        setOrganizations([defaultOrg]);
-        setSelectedOrg(defaultOrg);
+        setLocalOrganizations([]);
+        setOrganizations([]);
       }
     };
     fetchOrgs();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (refreshToken) {
+      await apiClient.post('/auth/logout', { refreshToken }).catch(() => undefined);
+    }
     logout();
     navigate('/login');
   };
 
-  const handleOrgCreated = (newOrg: any) => {
-    setOrganizations((prev) => [...prev, newOrg]);
-    setSelectedOrg(newOrg);
+  const handleOrgCreated = (newOrg: Organization) => {
+    const updated = [...organizations, newOrg];
+    setLocalOrganizations(updated);
+    setOrganizations(updated);
+    setCurrentOrg(newOrg);
   };
 
   return (
@@ -77,7 +79,7 @@ export const Header: React.FC = () => {
               title="Click to switch Shop or Company"
             >
               <span style={styles.branchDot}></span>
-              <span style={styles.orgNameText}>{selectedOrg?.name || 'My Business'}</span>
+              <span style={styles.orgNameText}>{currentOrg?.name || 'Create a business'}</span>
               <span style={styles.chevron}>▾</span>
             </div>
 
@@ -90,15 +92,15 @@ export const Header: React.FC = () => {
                       key={org._id}
                       style={{
                         ...styles.orgItem,
-                        ...(selectedOrg?._id === org._id ? styles.orgItemActive : {}),
+                        ...(currentOrg?._id === org._id ? styles.orgItemActive : {}),
                       }}
                       onClick={() => {
-                        setSelectedOrg(org);
+                        setCurrentOrg(org);
                         setIsOrgDropdownOpen(false);
                       }}
                     >
                       <div style={styles.orgItemName}>🏢 {org.name}</div>
-                      <div style={styles.orgItemCode}>{org.code || 'Main Branch'}</div>
+                      <div style={styles.orgItemCode}>{org.slug || 'Main business'}</div>
                     </div>
                   ))}
                 </div>

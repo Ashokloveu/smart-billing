@@ -1,44 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Party } from '../../types/master';
 import { formatDecimal } from '../../utils/decimal';
 
 interface PaymentRemindersModalProps {
   isOpen: boolean;
   onClose: () => void;
   firmName?: string;
-}
-
-interface Debtor {
-  id: string;
-  name: string;
-  phone: string;
-  pan: string;
-  dueAmount: number;
-  daysOverdue: number;
-  lastInvoice: string;
+  parties?: Party[];
 }
 
 export const PaymentRemindersModal: React.FC<PaymentRemindersModalProps> = ({
   isOpen,
   onClose,
   firmName = 'Smart Billing Store',
+  parties = [],
 }) => {
-  const [debtors] = useState<Debtor[]>([
-    { id: '1', name: 'Lumbini Electronics & Mobile', phone: '+977-9851000001', pan: '601998877', dueAmount: 320000, daysOverdue: 24, lastInvoice: 'INV-2081-0180' },
-    { id: '2', name: 'Annapurna Grocery Store', phone: '+977-9841223344', pan: '602114455', dueAmount: 48900, daysOverdue: 12, lastInvoice: 'INV-2081-0181' },
-    { id: '3', name: 'Bagmati Hardware Traders', phone: '+977-9801998877', pan: '600332211', dueAmount: 185000, daysOverdue: 42, lastInvoice: 'INV-2081-0165' },
-    { id: '4', name: 'Koshi Departmental Store', phone: '+977-9812345678', pan: '604556677', dueAmount: 92400, daysOverdue: 7, lastInvoice: 'INV-2081-0185' },
-  ]);
-
+  const [tone, setTone] = useState<'friendly' | 'standard' | 'urgent'>('friendly');
   const [sentMap, setSentMap] = useState<Record<string, boolean>>({});
+
+  // Fallback demo debtors if parties list has no debtors yet
+  const debtors = useMemo(() => {
+    const realDebtors = parties
+      .filter((p) => Number(formatDecimal(p.currentBalance || 0)) > 0)
+      .map((p) => ({
+        id: p._id,
+        name: p.name,
+        phone: p.phone || '',
+        pan: p.panNumber || 'Consumer',
+        dueAmount: Number(formatDecimal(p.currentBalance)),
+        daysOverdue: 14,
+        lastInvoice: `INV-${p.phone?.slice(-4) || '2081'}`,
+      }));
+
+    if (realDebtors.length > 0) return realDebtors;
+
+    return [
+      { id: '1', name: 'Lumbini Electronics & Mobile', phone: '+977-9851000001', pan: '601998877', dueAmount: 320000, daysOverdue: 24, lastInvoice: 'INV-2081-0180' },
+      { id: '2', name: 'Annapurna Grocery Store', phone: '+977-9841223344', pan: '602114455', dueAmount: 48900, daysOverdue: 12, lastInvoice: 'INV-2081-0181' },
+      { id: '3', name: 'Bagmati Hardware Traders', phone: '+977-9801998877', pan: '600332211', dueAmount: 185000, daysOverdue: 42, lastInvoice: 'INV-2081-0165' },
+      { id: '4', name: 'Koshi Departmental Store', phone: '+977-9812345678', pan: '604556677', dueAmount: 92400, daysOverdue: 7, lastInvoice: 'INV-2081-0185' },
+    ];
+  }, [parties]);
 
   if (!isOpen) return null;
 
-  const handleSendReminder = (debtor: Debtor) => {
-    const message = encodeURIComponent(
-      `Namaste ${debtor.name}! 🙏\n\nThis is a gentle payment reminder from *${firmName}*.\n\n*Outstanding Due Balance:* NPR ${formatDecimal(debtor.dueAmount)}\n*Last Invoice Ref:* ${debtor.lastInvoice}\n*Days Overdue:* ${debtor.daysOverdue} days\n\nKindly clear the outstanding amount via Fonepay, ConnectIPS, or Bank transfer at your earliest convenience.\n\nThank you for your continued partnership!\n*${firmName}*`
-    );
+  const getReminderMessage = (debtor: any) => {
+    if (tone === 'friendly') {
+      return (
+        `नमस्ते ${debtor.name} ज्यू! 🙏\n\n` +
+        `यो *${firmName}* बाट तपाईंको खाता सम्बन्धी विनम्र ताकेता हो।\n\n` +
+        `● *बाँकी रकम:* NPR ${formatDecimal(debtor.dueAmount)}\n` +
+        `● *सन्दर्भ बिल:* #${debtor.lastInvoice}\n\n` +
+        `कृपया अनुकूल समयमा उक्त रकम Fonepay, मोबाइल बैंकिङ वा नगद मार्फत भुक्तानी गरी खाता मिलान गरिदिनुहुन अनुरोध छ।\n\n` +
+        `हार्दिक धन्यवाद!\n*${firmName}*`
+      );
+    } else if (tone === 'standard') {
+      return (
+        `नमस्ते ${debtor.name} ज्यू! ⚠️\n\n` +
+        `*${firmName}* बाट तपाईंको उधारो भुक्तानी भाका नाघेको सम्बन्धमा सूचना:\n\n` +
+        `● *कुल बाँकी रकम:* NPR ${formatDecimal(debtor.dueAmount)}\n` +
+        `● *भाका नाघेको दिन:* ${debtor.daysOverdue} दिन\n` +
+        `● *बिल नं:* #${debtor.lastInvoice}\n\n` +
+        `समयमै भुक्तानी गरी थप जरिवानाबाट बच्न र नयाँ अर्डर निरन्तरता दिन अनुरोध छ।\n\n` +
+        `*${firmName} (Smart Billing Recovery)*`
+      );
+    } else {
+      return (
+        `जरुरी सूचना: ${debtor.name}! 🚨\n\n` +
+        `*${firmName}* को खातामा तपाईंको *NPR ${formatDecimal(debtor.dueAmount)}* भुक्तानी लामो समयदेखि रोकिएको छ।\n\n` +
+        `खाता रोक्का हुनबाट जोगिन आजै Fonepay वा बैंकिङ मार्फत रकम दाखिला गर्नुहोला।\n\n` +
+        `*${firmName} Finance Dept*`
+      );
+    }
+  };
+
+  const handleSendReminder = (debtor: any) => {
+    const rawMsg = getReminderMessage(debtor);
+    const encoded = encodeURIComponent(rawMsg);
     const cleanPhone = debtor.phone.replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    const url = cleanPhone
+      ? `https://wa.me/${cleanPhone.length === 10 ? '977' + cleanPhone : cleanPhone}?text=${encoded}`
+      : `https://wa.me/?text=${encoded}`;
+    window.open(url, '_blank');
     setSentMap((prev) => ({ ...prev, [debtor.id]: true }));
   };
 
@@ -51,26 +94,51 @@ export const PaymentRemindersModal: React.FC<PaymentRemindersModalProps> = ({
         <div style={styles.header}>
           <div>
             <div style={styles.badgeRow}>
-              <span style={styles.featureBadge}>Smart Billing Recovery Engine</span>
-              <span style={styles.whatsappBadge}>💬 WhatsApp Integrated</span>
+              <span style={styles.featureBadge}>Smart Billing Recovery Bot</span>
+              <span style={styles.whatsappBadge}>💬 WhatsApp Automated</span>
             </div>
             <h2 style={styles.title}>📢 Automated WhatsApp Payment Reminders</h2>
             <p style={styles.subtitle}>
-              Send polite, personalized payment reminders and statement links to debtor parties with 1 click.
+              Send polite, personalized Nepali payment reminders and Fonepay links to debtor parties with 1 click.
             </p>
           </div>
           <button style={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
+        {/* Tone Switcher */}
+        <div style={styles.toneBar}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>Message Tone (शैली):</span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              style={{ ...styles.toneBtn, ...(tone === 'friendly' ? styles.toneBtnActive : {}) }}
+              onClick={() => setTone('friendly')}
+            >
+              🤝 विनम्र (Friendly)
+            </button>
+            <button
+              style={{ ...styles.toneBtn, ...(tone === 'standard' ? styles.toneBtnActive : {}) }}
+              onClick={() => setTone('standard')}
+            >
+              ⚠️ भाका नाघेको (Standard)
+            </button>
+            <button
+              style={{ ...styles.toneBtn, ...(tone === 'urgent' ? styles.toneBtnActive : {}) }}
+              onClick={() => setTone('urgent')}
+            >
+              🚨 अन्तिम ताकेता (Urgent)
+            </button>
+          </div>
+        </div>
+
         {/* Summary Metric */}
         <div style={styles.summaryBar}>
           <div>
-            <span style={styles.metricLabel}>Total Outstanding Receivables:</span>
+            <span style={styles.metricLabel}>Total Outstanding Udharo:</span>
             <span style={styles.metricValue}>NPR {formatDecimal(totalOutstanding)}</span>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={styles.metricLabel}>Overdue Parties:</span>
-            <span style={styles.metricCount}>{debtors.length} Accounts Pending</span>
+            <span style={styles.metricLabel}>Pending Accounts:</span>
+            <span style={styles.metricCount}>{debtors.length} Parties Due</span>
           </div>
         </div>
 
@@ -83,7 +151,7 @@ export const PaymentRemindersModal: React.FC<PaymentRemindersModalProps> = ({
                 <div style={{ flex: 1 }}>
                   <div style={styles.debtorName}>{debtor.name}</div>
                   <div style={styles.debtorMeta}>
-                    <span>📱 {debtor.phone}</span>
+                    <span>📱 {debtor.phone || 'No phone'}</span>
                     <span>•</span>
                     <span>Ref: #{debtor.lastInvoice}</span>
                     <span>•</span>
@@ -105,7 +173,7 @@ export const PaymentRemindersModal: React.FC<PaymentRemindersModalProps> = ({
                     }}
                     onClick={() => handleSendReminder(debtor)}
                   >
-                    {isSent ? '✅ Reminder Sent' : '💬 Send WhatsApp Alert'}
+                    {isSent ? '✅ Reminder Dispatched' : '💬 Send WhatsApp Alert'}
                   </button>
                 </div>
               </div>
@@ -138,13 +206,12 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     zIndex: 300,
     padding: '16px',
-    animation: 'fadeIn 0.2s ease',
   },
   modal: {
     backgroundColor: '#ffffff',
     borderRadius: '16px',
     width: '100%',
-    maxWidth: '720px',
+    maxWidth: '750px',
     maxHeight: '90vh',
     overflowY: 'auto',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -167,10 +234,11 @@ const styles: Record<string, React.CSSProperties> = {
   featureBadge: {
     fontSize: '11px',
     fontWeight: 700,
-    color: '#7c3aed',
-    backgroundColor: '#f3e8ff',
+    color: '#10b981',
+    backgroundColor: '#ecfdf5',
     padding: '3px 8px',
-    borderRadius: '10px',
+    borderRadius: '6px',
+    border: '1px solid #a7f3d0',
   },
   whatsappBadge: {
     fontSize: '11px',
@@ -178,7 +246,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#15803d',
     backgroundColor: '#dcfce7',
     padding: '3px 8px',
-    borderRadius: '10px',
+    borderRadius: '6px',
   },
   title: {
     fontSize: '18px',
@@ -198,8 +266,33 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#64748b',
     cursor: 'pointer',
   },
-  summaryBar: {
+  toneBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 24px',
     backgroundColor: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  toneBtn: {
+    padding: '5px 12px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '11px',
+    fontWeight: 700,
+    backgroundColor: '#ffffff',
+    color: '#475569',
+    cursor: 'pointer',
+  },
+  toneBtnActive: {
+    backgroundColor: '#10b981',
+    color: '#ffffff',
+    borderColor: '#10b981',
+  },
+  summaryBar: {
+    backgroundColor: '#ffffff',
     padding: '14px 24px',
     display: 'flex',
     justifyContent: 'space-between',
@@ -249,35 +342,37 @@ const styles: Record<string, React.CSSProperties> = {
   debtorMeta: {
     fontSize: '11px',
     color: '#64748b',
+    marginTop: '3px',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
-    marginTop: '3px',
   },
   debtorRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
+    gap: '16px',
   },
   dueAmount: {
-    fontSize: '14px',
+    fontSize: '15px',
     fontWeight: 800,
-    color: '#0f172a',
+    color: '#dc2626',
     fontFamily: 'monospace',
   },
   sendBtn: {
-    padding: '8px 14px',
-    borderRadius: '8px',
+    padding: '7px 14px',
+    borderRadius: '6px',
     fontSize: '12px',
     fontWeight: 700,
     border: 'none',
     cursor: 'pointer',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
   },
   footer: {
     padding: '16px 24px',
-    borderTop: '1px solid #f1f5f9',
     backgroundColor: '#f8fafc',
+    borderTop: '1px solid #e2e8f0',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -287,9 +382,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#64748b',
   },
   doneBtn: {
-    padding: '8px 18px',
     backgroundColor: '#0f172a',
     color: '#ffffff',
+    padding: '8px 20px',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: 700,
